@@ -1,0 +1,5 @@
+{
+    "ScriptDescription": "This script is used to check the MGMT management IP. It's a Common script.",
+    "Command": "gettable eth",
+    "Active": false
+}

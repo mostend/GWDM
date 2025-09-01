@@ -1,0 +1,44 @@
+{
+    "ScriptDescription": "This script is used to set the STM6800 GCC.",
+    "Command": "setgcc %s %s %s %s",
+    "Active": false,
+    "Parameter": [
+        {
+            "ParameterDescription": "slot number",
+            "ParameterValue": "2",
+            "ParameterReferenceValue": [
+                ""
+            ]
+        },
+        {
+            "ParameterDescription": "port number",
+            "ParameterValue": "1",
+            "ParameterReferenceValue": [
+                ""
+            ]
+        },
+        {
+            "ParameterDescription": "odu type. 0: OTU, 1: ODU0, 2: ODU1, 3: ODU2, 5: ODU4, 6: ODU2e",
+            "ParameterValue": "0",
+            "ParameterReferenceValue": [
+                "0",
+                "1",
+                "2",
+                "3",
+                "5",
+                "6"
+            ]
+        },
+        {
+            "ParameterDescription": "gcctype(0-disable, 1-gcc0, 2-gcc1, 3-gcc2, 4-gcc12, 5-gcc012)",
+            "ParameterValue": "0",
+            "ParameterReferenceValue": [
+                "0",
+                "1",
+                "2",
+                "3",
+                "5"
+            ]
+        }
+    ]
+}

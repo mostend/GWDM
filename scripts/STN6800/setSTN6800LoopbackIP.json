@@ -1,0 +1,14 @@
+{
+    "ScriptDescription": "This script is used to set the STM6800 Loopback IP.",
+    "Command": "setip nodeip %s",
+    "Active": false,
+    "Parameter": [
+        {
+            "ParameterDescription": "Loopback IP",
+            "ParameterValue": "192.168.1.1",
+            "ParameterReferenceValue": [
+                "192.168.1.1"
+            ]
+        }
+    ]
+}

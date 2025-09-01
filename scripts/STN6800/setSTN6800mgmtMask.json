@@ -1,0 +1,22 @@
+{
+    "ScriptDescription": "This script is used to set the STM6800 MGMT IP mask.",
+    "Command": "setip mask %s %s",
+    "Active": false,
+    "Parameter": [
+        {
+            "ParameterDescription": "2 means STM6800 SC card port 2, 3 means STM6800 SC card port 1",
+            "ParameterValue": "3",
+            "ParameterReferenceValue": [
+                "2",
+                "3"
+            ]
+        },
+        {
+            "ParameterDescription": "MGMT IP",
+            "ParameterValue": "255.255.255.0",
+            "ParameterReferenceValue": [
+                "255.255.255.0"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "ScriptDescription": "This script is used to set the STM6800 Gateway IP.",
+    "Command": "setip gateway %s",
+    "Active": false,
+    "Parameter": [
+        {
+            "ParameterDescription": "Default Gateway",
+            "ParameterValue": "192.168.1.1",
+            "ParameterReferenceValue": [
+                "192.168.1.1"
+            ]
+        }
+    ]
+}

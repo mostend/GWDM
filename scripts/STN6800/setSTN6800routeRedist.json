@@ -1,0 +1,15 @@
+{
+    "ScriptDescription": "This script is used to set the STM6800 route redist status!",
+    "Command": "setip defRtRedist %s",
+    "Active": false,
+    "Parameter": [
+        {
+            "ParameterDescription": "OSPF status, 0 means disable, 1 means enable",
+            "ParameterValue": "0",
+            "ParameterReferenceValue": [
+                "0",
+                "1"
+            ]
+        }
+    ]
+}

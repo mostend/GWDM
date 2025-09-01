@@ -1,0 +1,31 @@
+{
+    "ScriptDescription": "This script is used to set the STM6800 osc OSPF status.",
+    "Command": "tools_set osc %s %s %s",
+    "Active": false,
+    "Parameter": [
+        {
+            "ParameterDescription": "slot and port number, slot 18",
+            "ParameterValue": "18",
+            "ParameterReferenceValue": [
+                "18",
+                "20"
+            ]
+        },
+        {
+            "ParameterDescription": "port number, port 1 or 2",
+            "ParameterValue": "1",
+            "ParameterReferenceValue": [
+                "1",
+                "2"
+            ]
+        },
+        {
+            "ParameterDescription": "OSC OSPF status",
+            "ParameterValue": "ospfenable",
+            "ParameterReferenceValue": [
+                "ospfenable",
+                "ospfdisable"
+            ]
+        }
+    ]
+}

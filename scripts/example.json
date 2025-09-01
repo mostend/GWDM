@@ -1,0 +1,22 @@
+{
+    "ScriptDescription": "Check if a process is running on a specific IP address",
+    "Command": "netstat -antup | grep %s | grep %s",
+    "Active": false,
+    "Parameter": [
+        {
+            "ParameterDescription": "process name",
+            "ParameterValue": "sshd",
+            "ParameterReferenceValue": [
+                "sshd",
+                "docker"
+            ]
+        },
+        {
+            "ParameterDescription": "IP filter",
+            "ParameterValue": "192.168.1.1",
+            "ParameterReferenceValue": [
+                "10.10.10.1"
+            ]
+        }
+    ]
+}

@@ -1,0 +1,5 @@
+{
+    "ScriptDescription": "This script is used to check the slots status. It's a Common script.",
+    "Command": "gettable slot",
+    "Active": false
+}

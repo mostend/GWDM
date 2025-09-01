@@ -1,0 +1,5 @@
+{
+    "ScriptDescription": "This script is used to check the OSC interface status. It's a Common script.",
+    "Command": "gettable oscif",
+    "Active": false
+}

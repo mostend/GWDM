@@ -1,0 +1,14 @@
+{
+    "ScriptDescription": "This script is used to set the STM6800 OSPF Aera!",
+    "Command": "setip global_ospf_area %s",
+    "Active": false,
+    "Parameter": [
+        {
+            "ParameterDescription": "Global OSPF Area",
+            "ParameterValue": "0.0.0.0",
+            "ParameterReferenceValue": [
+                "0.0.0.0"
+            ]
+        }
+    ]
+}

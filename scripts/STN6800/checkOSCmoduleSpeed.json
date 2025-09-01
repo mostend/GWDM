@@ -1,0 +1,5 @@
+{
+    "ScriptDescription": "This script is used to check the STM6800 OSC module speed.",
+    "Command": "gettable ethport",
+    "Active": false
+}

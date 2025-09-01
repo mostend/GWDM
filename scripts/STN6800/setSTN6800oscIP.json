@@ -1,0 +1,52 @@
+{
+    "ScriptDescription": "This script is used to set the STM6800 osc IP.",
+    "Command": "tools_set osc %s %s ip %s netmask %s vlan %s tag %s",
+    "Active": false,
+    "Parameter": [
+        {
+            "ParameterDescription": "slot and port number, slot 18",
+            "ParameterValue": "18",
+            "ParameterReferenceValue": [
+                "18",
+                "20"
+            ]
+        },
+        {
+            "ParameterDescription": "port number, port 1 or 2",
+            "ParameterValue": "1",
+            "ParameterReferenceValue": [
+                "1",
+                "2"
+            ]
+        },
+        {
+            "ParameterDescription": "OSC IP",
+            "ParameterValue": "192.168.1.100",
+            "ParameterReferenceValue": [
+                "192.168.1.100"
+            ]
+        },
+        {
+            "ParameterDescription": "OSC IP mask",
+            "ParameterValue": "255.255.255.252",
+            "ParameterReferenceValue": [
+                "255.255.255.252"
+            ]
+        },
+        {
+            "ParameterDescription": "OSC vlan ID",
+            "ParameterValue": "3001",
+            "ParameterReferenceValue": [
+                "3001"
+            ]
+        },
+        {
+            "ParameterDescription": "OSC vlan mode, 1: untagged, 0: tagged",
+            "ParameterValue": "1",
+            "ParameterReferenceValue": [
+                "0",
+                "1"
+            ]
+        }
+    ]
+}

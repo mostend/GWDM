@@ -1,0 +1,5 @@
+{
+    "ScriptDescription": "This script is used to check the port status. It's a Common script.",
+    "Command": "gettable port",
+    "Active": false
+}

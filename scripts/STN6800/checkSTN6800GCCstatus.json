@@ -1,0 +1,21 @@
+{
+    "ScriptDescription": "This script is used to check the STM6800 GCC status.",
+    "Command": "gettable dcn | grep 1.%s.0.%s",
+    "Active": false,
+    "Parameter": [
+        {
+            "ParameterDescription": "slot number",
+            "ParameterValue": "2",
+            "ParameterReferenceValue": [
+                ""
+            ]
+        },
+        {
+            "ParameterDescription": "port number",
+            "ParameterValue": "1",
+            "ParameterReferenceValue": [
+                ""
+            ]
+        }
+    ]
+}

@@ -1,0 +1,26 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:dev": "vite build --minify false --mode development",
+    "build": "vite build --mode production",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@xterm/xterm": "latest",
+    "echarts": "latest",
+    "lodash": "latest",
+    "lodash-es": "latest",
+    "vue": "latest",
+    "vue-router": "latest"
+  },
+  "devDependencies": {
+    "@arco-design/web-vue": "latest",
+    "@vitejs/plugin-vue": "latest",
+    "@wailsio/runtime": "latest",
+    "vite": "latest"
+  }
+}
