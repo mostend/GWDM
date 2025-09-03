@@ -105,6 +105,9 @@ const DeleteFolder = () => {
 
 const GetCommand = function (currentScript) {
     let command = currentScript.Command
+    if (command == "") {
+        return false
+    }
     if (currentScript.Parameter.length == 0) {
         return command
     }
@@ -123,6 +126,9 @@ const handleScriptEnableChange = async (record) => {
         try {
             const fullPath = CommanderData.Folder + "/" + record.name
             const scriptContent = await GetScriptContent(fullPath)
+            if (!scriptContent || !scriptContent.Command) {
+                throw new Error("Invalid script content")
+            }
             CommanderData.Scripts.push({
                 ...scriptContent,
                 id: record.id,
@@ -132,10 +138,10 @@ const handleScriptEnableChange = async (record) => {
             console.error("Failed to get script content:", error)
             // 如果获取失败，将enabled状态重置为false
             record.enabled = false
-            Modal.error({
-                title: 'Error',
-                content: `Failed to get content for script ${record.name}!`,
-            })
+            // Modal.error({
+            //     title: 'Error',
+            //     content: `Failed to get content for script ${record.name}!`,
+            // })
         }
     } else {
         // 如果是未选中状态，则从Scripts中删除该脚本
