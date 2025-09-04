@@ -58,18 +58,10 @@ func (s *CommanderService) GetScriptContent(scriptPath string) (script Script) {
 	// 直接使用完整路径读取文件
 	bytes, err := os.ReadFile(scriptPath)
 	if err != nil {
-		dialog := application.ErrorDialog()
-		dialog.SetTitle("Error")
-		dialog.SetMessage(fmt.Sprintf("Failed to read script file! File:%s, Error: %s", scriptPath, err))
-		dialog.Show()
 		return Script{}
 	}
 	err = json.Unmarshal(bytes, &script)
 	if err != nil {
-		dialog := application.ErrorDialog()
-		dialog.SetTitle("Error")
-		dialog.SetMessage(fmt.Sprintf("Failed to parse script file! File:%s, Error: %s", scriptPath, err))
-		dialog.Show()
 		return Script{}
 	}
 	// 保存完整路径

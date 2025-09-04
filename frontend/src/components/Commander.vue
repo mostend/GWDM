@@ -138,6 +138,11 @@ const handleScriptEnableChange = async (record) => {
             console.error("Failed to get script content:", error)
             // 如果获取失败，将enabled状态重置为false
             record.enabled = false
+
+            Dialogs.Error({
+                title: 'Error',
+                message: `Failed to get content for script ${record.name}!`
+            })
             // Modal.error({
             //     title: 'Error',
             //     content: `Failed to get content for script ${record.name}!`,
