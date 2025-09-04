@@ -40,14 +40,7 @@ func (s *CommanderService) GetScriptsList(folder string) (scriptsList []string) 
 		return []string{}
 	}
 	for _, file := range files {
-		if file.IsDir() {
-			// 递归处理子目录中的文件，但不直接添加目录本身
-			subScripts := s.GetScriptsList(folder + "/" + file.Name())
-			for _, subScript := range subScripts {
-				// 构建相对于主目录的路径
-				scriptsList = append(scriptsList, file.Name()+"/"+subScript)
-			}
-		} else {
+		if !file.IsDir() {
 			scriptsList = append(scriptsList, file.Name())
 		}
 	}
