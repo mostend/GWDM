@@ -20,8 +20,11 @@ function IsResultWindow() {
       <a-menu-item key="2">Commander</a-menu-item>
     </RouterLink>
     <RouterLink to="/Fec2Q">
-      <a-menu-item key="3">FEC</a-menu-item>
+      <a-menu-item key="3">Fec2Q-Factor</a-menu-item>
     </RouterLink>
+    <!-- <RouterLink to="/B2BOSNR">
+      <a-menu-item key="4">B2B-OSNR</a-menu-item>
+    </RouterLink> -->
   </a-menu>
 
   <div class="main">
