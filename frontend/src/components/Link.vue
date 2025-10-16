@@ -147,7 +147,7 @@ const columns = [
         title: 'Model',
         dataIndex: 'Model',
         slotName: 'Model',
-        width: 150,
+        width: 250,
     },
     {
         title: 'SingleIn',
