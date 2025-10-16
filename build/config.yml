@@ -11,7 +11,7 @@ info:
   description: "A WDM system calculation tool" # The application description
   copyright: "(c) 2025, GWDM" # Copyright text
   comments: "A WDM system calculation tool" # Comments
-  version: "0.0.1" # The application version
+  version: "1.0.0" # The application version
 
 # Dev mode configuration
 dev_mode:
