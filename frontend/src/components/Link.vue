@@ -1,10 +1,11 @@
 <template>
     <a-row style="height: 100%;">
-        <a-col :span="18">
+        <a-col :span="18" style="height: 98%;">
             <!-- 为表格容器添加滚动样式 -->
             <div style="height: 100%; overflow: auto;">
-                <a-table :columns="columns" :data="data" :pagination="false"
-                    @row-click="(record) => { selectedRow = data.indexOf(record) }">
+                <a-table :columns="columns" :data="data" :pagination="false" :sticky-header="true" @row-click="(record, event) => {
+                    handleRowSelect(record, event)
+                }">
                     <!-- 添加 action 插槽 -->
                     <template #Action="{ record, rowIndex }">
                         <a-tooltip content="Add to Last">
@@ -133,12 +134,14 @@ let linkChartInstance = null;
 const chartContainer = ref(null);
 const linkChartContainer = ref(null);
 
+// 存储上一次选中的行元素
+let previousSelectedRowElement = null;
 
 const columns = [
     {
         title: 'No.',
         dataIndex: 'No',
-        width: 40,
+        width: 60,
     },
     {
         title: 'Model',
@@ -175,7 +178,7 @@ const columns = [
         title: 'Action',
         dataIndex: 'Action',
         slotName: 'Action',
-        width: 150
+        width: 140
     }
 ];
 
@@ -254,6 +257,40 @@ const deleteRow = (rowIndex) => {
         calculateOSNR(data);
     }
 };
+
+// 选中表格行时触发
+const handleRowSelect = (record, event) => {
+    // 清除上一次选中行的高亮
+    if (previousSelectedRowElement) {
+        const children = previousSelectedRowElement.children;
+        for (let i = 0; i < children.length; i++) {
+            children[i].style.backgroundColor = '';
+        }
+    }
+
+    // 获取当前点击的行元素
+    let currentRowElement = event.target;
+
+    // 判断event.target如果是span元素或其他子元素，则向上查找直到找到tr元素
+    while (currentRowElement && currentRowElement.tagName !== 'TR') {
+        currentRowElement = currentRowElement.parentElement;
+    }
+
+    // 如果找到了tr元素，则将它的子元素都改成背景色
+    if (currentRowElement) {
+        const children = currentRowElement.children;
+        for (let i = 0; i < children.length; i++) {
+            children[i].style.backgroundColor = '#E6E6FA';
+        }
+        // 保存当前选中行元素以便下次清除
+        previousSelectedRowElement = currentRowElement;
+    }
+
+    // 更新选中行索引
+    selectedRow.value = data.indexOf(record);
+};
+
+
 
 const onModelChange = (value, rowIndex) => {
     // 设置选中行
