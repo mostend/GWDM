@@ -6,6 +6,16 @@
                 <a-table :columns="columns" :data="data" :pagination="false" :sticky-header="true" @row-click="(record, event) => {
                     handleRowSelect(record, event)
                 }">
+                    <!-- 添加 Model 插槽 -->
+                    <template #Model="{ record, rowIndex }">
+                        <a-cascader v-model="record.Model" :options="cascaderOptions" path-mode
+                            @change="(value) => onModelChange(value, rowIndex)"
+                            :field-names="{ label: 'label', value: 'value', children: 'children' }" />
+                    </template>
+                    <!-- 添加 SiteName 插槽 -->
+                    <template #SiteName="{ record, rowIndex }">
+                        <a-input v-model="record.SiteName" />
+                    </template>
                     <!-- 添加 action 插槽 -->
                     <template #Action="{ record, rowIndex }">
                         <a-tooltip content="Add to Last">
@@ -30,11 +40,7 @@
                             </a-button>
                         </a-tooltip>
                     </template>
-                    <template #Model="{ record, rowIndex }">
-                        <a-cascader v-model="record.Model" :options="cascaderOptions" path-mode
-                            @change="(value) => onModelChange(value, rowIndex)"
-                            :field-names="{ label: 'label', value: 'value', children: 'children' }" />
-                    </template>
+
                 </a-table>
             </div>
         </a-col>
@@ -142,6 +148,7 @@ const columns = [
         title: 'No.',
         dataIndex: 'No',
         width: 60,
+        align: 'center',
     },
     {
         title: 'Model',
@@ -152,33 +159,42 @@ const columns = [
     {
         title: 'SingleIn',
         dataIndex: 'SingleIn',
+        align: 'center',
     },
     {
         title: 'SingleOut',
         dataIndex: 'SingleOut',
+        align: 'center',
     },
     {
         title: 'MultiIn',
         dataIndex: 'MultiIn',
+        align: 'center',
     },
     {
         title: 'MultiOut',
         dataIndex: 'MultiOut',
+        align: 'center',
     },
     {
         title: 'SiteName',
+        slotName: 'SiteName',
         dataIndex: 'SiteName',
+        width: 180,
+        align: 'center',
     },
     {
         title: 'OSNR',
         dataIndex: 'OSNR',
+        align: 'center',
     },
     // 添加 Action 列
     {
         title: 'Action',
         dataIndex: 'Action',
         slotName: 'Action',
-        width: 140
+        width: 128,
+        align: 'center',
     }
 ];
 

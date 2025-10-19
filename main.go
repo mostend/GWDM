@@ -65,7 +65,7 @@ func main() {
 		URL:     "/",
 	})
 	if runtime.GOOS == "windows" {
-		mainWindow.SetZoom(0.9) // Set zoom level to 100% on Windows
+		mainWindow.SetZoom(0.9) // Set zoom level to 90% on Windows
 	}
 	// Run the application. This blocks until the application has been exited.
 	err := app.Run()
