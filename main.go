@@ -31,7 +31,7 @@ func main() {
 	// 'Mac' options tailor the application when running an macOS.
 	app := application.New(application.Options{
 		Name:        "GWDM",
-		Description: "A WDM GUI Toolbox",
+		Description: "GWDM WDM Design",
 		Services: []application.Service{
 			application.NewService(fec.NewFECService()),
 			application.NewService(commander.NewCommanderService()),
