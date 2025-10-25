@@ -1,6 +1,40 @@
 # GWDM
 A GUI software about WDM systems. Thanks wails!
 
+# Build
+
+## Install wails3 
+```shell
+git clone https://github.com/wailsapp/wails.git
+cd wails
+git checkout v3-alpha
+cd v3/cmd/wails3
+go install
+
+# Add $GOPATH to the environment variable
+```
+## Install go
+```shell
+https://go.dev/dl/
+```
+## Install nodejs
+```shell
+https://nodejs.org/en/download
+```
+
+## Build GWDM
+```shell
+#MacOS
+wails3 package
+
+#Windows
+$env:PRODUCTION = "true"
+wails3 task build
+
+#Binary files in GWDM/bin
+```
+
+
 ## Link budget and ONSR
 
 <img width="2798" height="1654" alt="image" src="https://github.com/user-attachments/assets/1f231867-18c6-4e88-abfb-9bc39a8a6fd7" />
