@@ -24,6 +24,9 @@ https://nodejs.org/en/download
 
 ## Build GWDM
 ```shell
+# clone
+git clone https://github.com/mostend/GWDM.git
+
 #MacOS
 wails3 package
 
