@@ -36,6 +36,12 @@ wails3 task build
 
 #Binary files in GWDM/bin
 ```
+## Download
+
+```shell
+# Windows must have EDGE browser installed
+https://github.com/mostend/GWDM/releases
+```
 
 
 ## Link budget and ONSR
