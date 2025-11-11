@@ -1,6 +1,6 @@
 module GWDM
 
-go 1.25.3
+go 1.25.4
 
 require (
 	github.com/wailsapp/wails/v3 v3.0.0-dev
