@@ -2,6 +2,37 @@
 
 import { optical } from './optical.js';
 import { Notification, Modal } from '@arco-design/web-vue';
+
+
+// 根据模型类型获取计算函数
+export const getCalculationFunction = (model) => {
+
+    if (optical.Mux.some(item => item.Model === model)) {
+        return calculateMux;
+    } else if (optical.DeMux.some(item => item.Model === model)) {
+        return calculateDeMux;
+    } else if (optical.Module.some(item => item.Model === model)) {
+        return calculateModule;
+    } else if (optical.EDFA.some(item => item.Model === model)) {
+        return calculateEDFA;
+    } else if (optical.Fiber.some(item => item.Model === model)) {
+        return calculateFiber;
+    } else if (optical.ROADM.some(item => item.Model === model)) {
+        return calculateROADM;
+    } else if (optical.OLP.some(item => item.Model === model)) {
+        return calculateOLP;
+    } else if (optical.DCM.some(item => item.Model === model)) {
+        return calculateDCM;
+    } else if (optical.VOA.some(item => item.Model === model)) {
+        return calculateVOA;
+    } else if (optical.RAMAN.some(item => item.Model === model)) {
+        return calculateRAMAN;
+    }
+    return null;
+};
+
+
+
 // Mux_DeMux的计算逻辑
 export const calculateMux = (currentData, previousData, data) => {
     if (previousData) {
@@ -53,6 +84,54 @@ export const calculateModule = (currentData, previousData, data) => {
 
 };
 
+
+// RAMAN的计算逻辑
+export const calculateRAMAN = (currentData, previousData, data) => {
+    if (previousData) {
+        currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
+        currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
+    }
+
+    // 首先需要判断Gain是否在正常范围内
+    if (parseFloat(currentData.Gain) < parseFloat(currentData.MinGainLimit) ||
+        parseFloat(currentData.Gain) > parseFloat(currentData.MaxGainLimit)) {
+        Notification.clear();
+        Notification.warning({
+            title: 'Warning',
+            content: `The Gain of the item:${currentData.No}: ${currentData.Model} is out of range!`,
+            position: 'bottomRight',
+        });
+    }
+
+    //判断输入是否在范围内
+    if (currentData.SingleIn > parseFloat(currentData.MaxInLimit) ||
+        currentData.SingleIn < parseFloat(currentData.MinInLimit) ||
+        currentData.MultiIn > parseFloat(currentData.MaxInLimit) ||
+        currentData.MultiIn < parseFloat(currentData.MinInLimit)
+    ) {
+        Notification.clear();
+        Notification.warning({
+            title: 'Warning',
+            content: `The single or multi input power of the item:${currentData.No}: ${currentData.Model}  is out of range!`,
+            position: 'bottomRight',
+        })
+    }
+    currentData.SingleOut = (parseFloat(currentData.SingleIn) + parseFloat(currentData.Gain)).toFixed(2);
+    currentData.MultiOut = (parseFloat(currentData.MultiIn) + parseFloat(currentData.Gain)).toFixed(2);
+
+    // 判断输出是否在范围内
+    if (currentData.MultiOut > parseFloat(currentData.MaxOutLimit)) {
+        Notification.clear();
+        Notification.warning({
+            title: 'Warning',
+            content: `The multi out power of the item: ${currentData.No}: ${currentData.Model}  is out of range!`,
+            position: 'bottomRight',
+        })
+    }
+
+}
+
+
 // EDFA的计算逻辑
 export const calculateEDFA = (currentData, previousData, data) => {
     if (previousData) {
@@ -95,7 +174,12 @@ export const calculateEDFA = (currentData, previousData, data) => {
             position: 'bottomRight',
         })
     }
-
+    // 如果上一级是RAMAN，则计算等效NF
+    if (previousData && optical.RAMAN.some(item => item.Model === previousData.Model)) {
+        currentData.EquivalentNF = (parseFloat(currentData.NF) + parseFloat(previousData.EquivalentNF)).toFixed(2);
+    } else {
+        currentData.EquivalentNF = parseFloat(currentData.NF).toFixed(2);
+    }
 };
 
 // Fiber的计算逻辑
@@ -156,30 +240,7 @@ export const calculateVOA = (currentData, previousData, data) => {
     currentData.MultiOut = (parseFloat(currentData.MultiIn) - parseFloat(currentData.InsertionLoss)).toFixed(2);
 }
 
-// 根据模型类型获取计算函数
-export const getCalculationFunction = (model) => {
 
-    if (optical.Mux.some(item => item.Model === model)) {
-        return calculateMux;
-    } else if (optical.DeMux.some(item => item.Model === model)) {
-        return calculateDeMux;
-    } else if (optical.Module.some(item => item.Model === model)) {
-        return calculateModule;
-    } else if (optical.EDFA.some(item => item.Model === model)) {
-        return calculateEDFA;
-    } else if (optical.Fiber.some(item => item.Model === model)) {
-        return calculateFiber;
-    } else if (optical.ROADM.some(item => item.Model === model)) {
-        return calculateROADM;
-    } else if (optical.OLP.some(item => item.Model === model)) {
-        return calculateOLP;
-    } else if (optical.DCM.some(item => item.Model === model)) {
-        return calculateDCM;
-    } else if (optical.VOA.some(item => item.Model === model)) {
-        return calculateVOA;
-    }
-    return null;
-};
 
 // 主计算函数
 export const calculateLink = (data) => {
@@ -226,7 +287,6 @@ export const calculateOSNR = (data) => {
     calculateCascadedOSNR(edfaData);
 };
 
-
 function calculateCascadedOSNR(stages) {
 
     // --- 物理常量 ---
@@ -255,7 +315,7 @@ function calculateCascadedOSNR(stages) {
         const stage = stages[i];
         // --- 参数线性化 ---
         const Pin_linear = dbmToWatts(stage.SingleIn);
-        const F_linear = dbToLinear(stage.NF);
+        const F_linear = dbToLinear(stage.EquivalentNF);
 
         // --- 计算当前级的ASE噪声贡献 ---
         // 这个值实际上是 (Signal / Noise_ASE)^-1，即信噪比的倒数

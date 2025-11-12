@@ -1,0 +1,4 @@
+{
+    "ScriptDescription": "Open WebLCT configuration script for DCI devices.",
+    "Command": "config_WebLCT start"
+}

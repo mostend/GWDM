@@ -6,12 +6,14 @@ import { mux } from './mux.js';
 import { demux } from './demux.js';
 import { olp } from './olp.js';
 import { dcm } from './dcm.js'
+import { raman } from './raman.js';
 import { voa } from './voa.js';
 
 export const optical = {
     Module: module,
     Mux: mux,
     DeMux: demux,
+    RAMAN: raman,
     EDFA: edfa,
     Fiber: fiber,
     OLP: olp,

@@ -1,0 +1,4 @@
+{
+    "ScriptDescription": "Stop WebLCT configuration script for DCI devices.",
+    "Command": "config_WebLCT stop"
+}

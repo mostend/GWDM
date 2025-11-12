@@ -1,0 +1,4 @@
+{
+    "ScriptDescription": "Restart WebLCT configuration script for DCI devices.",
+    "Command": "config_WebLCT restart"
+}

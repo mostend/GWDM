@@ -348,6 +348,9 @@ const onModelChange = (value, rowIndex) => {
         case 'VOA':
             modelData = optical.VOA.find(item => item.Model === selectedModel);
             break;
+        case 'RAMAN':
+            modelData = optical.RAMAN.find(item => item.Model === selectedModel);
+            break;
     }
 
     // 如果找到模型数据，则更新行数据

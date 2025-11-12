@@ -12,6 +12,7 @@ export const edfa = [
         MinGainLimit: 13,
         Gain: 16,
         NF: 6.5,
+        EquivalentNF: 0,
         OSNR: NaN,
         SiteName: "",
     }, {
@@ -27,6 +28,7 @@ export const edfa = [
         MinGainLimit: 20,
         Gain: 25,
         NF: 5.5,
+        EquivalentNF: 0,
         OSNR: NaN,
         SiteName: "",
     }, {
@@ -42,6 +44,7 @@ export const edfa = [
         MinGainLimit: 20,
         Gain: 25,
         NF: 5.5,
+        EquivalentNF: 0,
         OSNR: NaN,
         SiteName: "",
     }, {
@@ -57,6 +60,7 @@ export const edfa = [
         MinGainLimit: 13,
         Gain: 16,
         NF: 6.5,
+        EquivalentNF: 0,
         OSNR: NaN,
         SiteName: "",
     }, {
@@ -72,6 +76,7 @@ export const edfa = [
         MinGainLimit: 10,
         Gain: 13,
         NF: 6.5,
+        EquivalentNF: 0,
         OSNR: NaN,
         SiteName: "",
     }, {
@@ -87,6 +92,7 @@ export const edfa = [
         MinGainLimit: 20,
         Gain: 25,
         NF: 5.5,
+        EquivalentNF: 0,
         OSNR: NaN,
         SiteName: "",
     }, {
@@ -102,6 +108,7 @@ export const edfa = [
         MinGainLimit: 15,
         Gain: 20,
         NF: 5.5,
+        EquivalentNF: 0,
         OSNR: NaN,
         SiteName: "",
     }, {
@@ -117,6 +124,7 @@ export const edfa = [
         MinGainLimit: 20,
         Gain: 25,
         NF: 5.5,
+        EquivalentNF: 0,
         OSNR: NaN,
         SiteName: "",
     }, {
@@ -132,6 +140,7 @@ export const edfa = [
         MinGainLimit: 15,
         Gain: 20,
         NF: 5.5,
+        EquivalentNF: 0,
         OSNR: NaN,
         SiteName: "",
     }, {
@@ -147,6 +156,7 @@ export const edfa = [
         MinGainLimit: 25,
         Gain: 30,
         NF: 5.5,
+        EquivalentNF: 0,
         OSNR: NaN,
         SiteName: "",
     }
