@@ -26,6 +26,13 @@ export class FEC {
              */
             this["Q_Factor"] = "";
         }
+        if (!("EngineeringPreFEC" in $$source)) {
+            /**
+             * @member
+             * @type {string}
+             */
+            this["EngineeringPreFEC"] = "";
+        }
 
         Object.assign(this, $$source);
     }

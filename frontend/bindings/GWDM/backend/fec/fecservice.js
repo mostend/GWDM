@@ -20,5 +20,15 @@ export function Fec2Q_Factor(newFecData) {
     }));
 }
 
+/**
+ * @param {$models.FEC} newQ_FactorData
+ * @returns {$CancellablePromise<$models.FEC>}
+ */
+export function Q_Factor2Fec(newQ_FactorData) {
+    return $Call.ByID(2274424510, newQ_FactorData).then(/** @type {($result: any) => any} */(($result) => {
+        return $$createType0($result);
+    }));
+}
+
 // Private type creation functions
 const $$createType0 = $models.FEC.createFrom;
