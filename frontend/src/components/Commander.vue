@@ -202,9 +202,9 @@ const RunScripts = () => {
 
 <template>
     <div class="commander-container">
-        <a-row :gutter="20">
+        <a-row :gutter="5">
             <!-- 第一列：宽度6 -->
-            <a-col :span="6" style="height: calc(100vh - 100px);">
+            <a-col :span="6" style="height: calc(100vh - 80px);">
                 <a-card title="Connection Settings" :bordered="true" style="height: 100%;">
                     <a-form :model="CommanderData" layout="horizontal">
                         <a-form-item label="IP" :label-col-props="{ span: 9 }" :wrapper-col-props="{ span: 15 }">
@@ -256,7 +256,7 @@ const RunScripts = () => {
             </a-col>
 
             <!-- 第二列：宽度8 -->
-            <a-col :span="8" style="height: calc(100vh - 100px);">
+            <a-col :span="8" style="height: calc(100vh - 80px);">
                 <a-card title="Scripts List" :bordered="true" style="height: 100%;">
                     <div style="margin-bottom: 15px;">
                         <strong>Folder Path:</strong>
@@ -292,7 +292,7 @@ const RunScripts = () => {
             </a-col>
 
             <!-- 第三列：宽度10 -->
-            <a-col :span="10" style="height: calc(100vh - 100px);">
+            <a-col :span="10" style="height: calc(100vh - 80px);">
                 <!-- 右侧列内容将在此处添加 -->
                 <!-- 修改：添加ref引用 -->
                 <a-card title="Scripts" :bordered="true" style="height: 100%; overflow-y: auto;"
@@ -349,19 +349,19 @@ const RunScripts = () => {
 
 <style scoped>
 .commander-container {
-    padding: 20px;
+    padding: 10px;
 }
 
 .form-fields {
     background: #f5f5f5;
-    padding: 15px;
+    padding: 10px;
     border-radius: 4px;
 }
 
 .middle-column,
 .right-column {
     background: #fafafa;
-    padding: 15px;
+    padding: 10px;
     border-radius: 4px;
     min-height: 300px;
 }
