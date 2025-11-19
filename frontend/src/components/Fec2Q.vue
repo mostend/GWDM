@@ -209,6 +209,7 @@ onMounted(() => {
                                         <mn> 2 </mn>
                                     </mrow>
                                 </mfrac>
+                                <mo> . </mo>
                                 <mi> e </mi>
                                 <mi> r </mi>
                                 <mi> f </mi>
