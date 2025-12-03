@@ -4,17 +4,17 @@
         <key>CFBundlePackageType</key>
             <string>APPL</string>
         <key>CFBundleName</key>
-            <string>GWDM</string>
+            <string>My Product</string>
         <key>CFBundleExecutable</key>
-            <string>GWDM</string>
+            <string>gwdm</string>
         <key>CFBundleIdentifier</key>
-            <string>com.GWDM.GWDM</string>
+            <string>com.wails.gwdm</string>
         <key>CFBundleVersion</key>
-            <string>1.0.3</string>
+            <string>0.1.0</string>
         <key>CFBundleGetInfoString</key>
-            <string>A WDM system calculation tool</string>
+            <string>This is a comment</string>
         <key>CFBundleShortVersionString</key>
-            <string>1.0.3</string>
+            <string>0.1.0</string>
         <key>CFBundleIconFile</key>
             <string>icons</string>
         <key>LSMinimumSystemVersion</key>
@@ -22,6 +22,6 @@
         <key>NSHighResolutionCapable</key>
             <string>true</string>
         <key>NSHumanReadableCopyright</key>
-            <string>© 2025, GWDM</string>
+            <string>© now, My Company</string>
     </dict>
 </plist>
