@@ -33,7 +33,8 @@ type Parameter struct {
 func (s *CommanderService) GetScriptsList(folder string) (scriptsList []string) {
 	files, err := os.ReadDir(folder)
 	if err != nil {
-		dialog := application.ErrorDialog()
+
+		dialog := application.Get().Dialog.Error()
 		dialog.SetTitle("Error")
 		dialog.SetMessage(fmt.Sprintf("Failed to read script folder! Folder:%s, Error: %s", folder, err))
 		dialog.Show()
@@ -73,7 +74,7 @@ func (s *CommanderService) Run(sshService *SSHService) {
 }
 
 func (s *CommanderService) SelectFolder() string {
-	diglog := application.OpenFileDialog()
+	diglog := application.Get().Dialog.OpenFile()
 	diglog.SetTitle("Select Script Folder")
 	diglog.CanChooseDirectories(true)
 	diglog.CanChooseFiles(false)
