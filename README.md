@@ -3,6 +3,15 @@ A GUI software about WDM systems. Thanks wails!
 
 # Build
 
+## Install go
+```shell
+https://go.dev/dl/
+```
+## Install nodejs
+```shell
+https://nodejs.org/en/download
+```
+
 ## Install wails3 
 ```shell
 git clone https://github.com/wailsapp/wails.git
@@ -12,14 +21,6 @@ cd v3/cmd/wails3
 go install
 
 # Add $GOPATH to the environment variable
-```
-## Install go
-```shell
-https://go.dev/dl/
-```
-## Install nodejs
-```shell
-https://nodejs.org/en/download
 ```
 
 ## Build GWDM
