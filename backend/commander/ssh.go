@@ -256,7 +256,6 @@ func (s *SSHService) OpenCommanderResultWindow() {
 		InitialPosition:    application.WindowCentered,
 		DisableResize:      true,
 		ZoomControlEnabled: true,
-		EnableDragAndDrop:  true,
 		CloseButtonState:   application.ButtonEnabled,
 		// MaximiseButtonState: application.ButtonDisabled,
 		Mac: application.MacWindow{
