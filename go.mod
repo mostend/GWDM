@@ -1,6 +1,6 @@
 module GWDM
 
-go 1.26.0
+go 1.26.1
 
 require (
 	github.com/wailsapp/wails/v3 v3.0.0-dev
@@ -43,7 +43,7 @@ require (
 	github.com/wailsapp/go-webview2 v1.0.23 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/net v0.51.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 )
