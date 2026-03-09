@@ -87,7 +87,7 @@
                                     v-if="key !== 'No'">
                                     <a-form-item :label="key" :key="key">
                                         <a-input v-model="data[selectedRow][key]" v-if="key !== 'Model'"
-                                            :readonly="key === 'No' || key === 'OSNR' || key === 'SpanLoss'" />
+                                            :readonly="key === 'No' || key === 'OSNR'" />
                                         <a-cascader v-model="data[selectedRow][key]" :options="cascaderOptions"
                                             v-else-if="key === 'Model'"
                                             @change="(value) => onModelChange(value, selectedRow)"

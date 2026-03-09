@@ -221,7 +221,7 @@ export const calculateOLP = (currentData, previousData, data) => {
         .toFixed(2);
 
 };
-
+// DCM的计算逻辑
 export const calculateDCM = (currentData, previousData, data) => {
     if (previousData) {
         currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
