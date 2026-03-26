@@ -1,14 +1,41 @@
 <script setup>
 
-import { ref, reactive, onMounted } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { Events } from '@wailsio/runtime';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css'
 
+let term = null;
+let unsubscribe = null;
+let nextSequence = 0;
+const pendingChunks = new Map();
+
+const getChunkPayload = (eventPayload) => {
+    const raw = eventPayload?.data;
+
+    if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+        return {
+            seq: Number(raw.seq),
+            text: typeof raw.text === 'string' ? raw.text : String(raw.text ?? ''),
+        };
+    }
+
+    return null;
+};
+
+const flushChunks = () => {
+    while (pendingChunks.has(nextSequence)) {
+        term.write(pendingChunks.get(nextSequence));
+        pendingChunks.delete(nextSequence);
+        nextSequence += 1;
+    }
+};
+
 onMounted(() => {
-    const term = new Terminal({
+    term = new Terminal({
         cols: 140,
         rows: 100,
+        convertEol: true,
         cursorBlink: true,
         cursorStyle: 'bar',
         fontSize: 14,
@@ -36,14 +63,29 @@ onMounted(() => {
         }
     });
     term.open(document.getElementById('xterm-container'));
-    Events.On("result", (data) => {
-        if (data.data.length > 0) {
-            term.write(`${data.data[0]}\r\n`);
+
+    unsubscribe = Events.On("result_chunk", (data) => {
+        const payload = getChunkPayload(data);
+        if (!payload || Number.isNaN(payload.seq) || payload.text.length === 0) {
+            return;
         }
+
+        pendingChunks.set(payload.seq, payload.text);
+        flushChunks();
     });
 });
 
-
+onUnmounted(() => {
+    if (typeof unsubscribe === 'function') {
+        unsubscribe();
+    }
+    if (term) {
+        term.dispose();
+        term = null;
+    }
+    pendingChunks.clear();
+    nextSequence = 0;
+});
 
 </script>
 <template>

@@ -1,15 +1,20 @@
 package commander
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/knownhosts"
 )
 
 type SSHService struct {
@@ -21,97 +26,230 @@ type SSHService struct {
 	Timeout  time.Duration // Timeout for SSH operations
 }
 
-// MuxShell handles multiplexing of shell commands over SSH with timeout support
-func MuxShell(w io.Writer, r io.Reader, timeout time.Duration) (chan<- string, <-chan string) {
-	in := make(chan string, 1)
-	out := make(chan string, 1)
-	var wg sync.WaitGroup
-	wg.Add(1) // for the shell itself
-
-	// Use a mutex to protect channel operations
-	var mu sync.Mutex
-	channelClosed := false
-
-	// Safe send function to prevent sending on closed channel
-	safeSend := func(msg string) {
-		mu.Lock()
-		defer mu.Unlock()
-		if !channelClosed {
-			out <- msg
-		}
-	}
-
-	// Safe close function to prevent double close
-	safeClose := func() {
-		mu.Lock()
-		defer mu.Unlock()
-		if !channelClosed {
-			channelClosed = true
-			close(in)
-			close(out)
-		}
-	}
-
-	// Command sender goroutine
-	go func() {
-		for cmd := range in {
-			wg.Add(1)
-			w.Write([]byte(cmd + "\n"))
-
-			// Create a timeout channel
-			timeoutChan := time.After(timeout)
-
-			// Wait for command completion or timeout
-			done := make(chan struct{})
-			go func() {
-				wg.Wait()
-				close(done)
-			}()
-
-			select {
-			case <-done:
-				// Command completed normally
-			case <-timeoutChan:
-				// Command timed out - use safe send
-				safeSend("Command timed out after " + timeout.String())
-				wg.Done() // Release the wait to allow next command
-			}
-		}
-	}()
-
-	// Output reader goroutine
-	go func() {
-		var (
-			buf [65 * 1024]byte
-			t   int
-		)
-		for {
-			n, err := r.Read(buf[t:])
-			if err != nil {
-				safeClose()
-				return
-			}
-			t += n
-
-			// Check for different prompts based on user (root or regular)
-			output := string(buf[:t])
-			if strings.HasSuffix(output, "# ") || // root prompt
-				strings.HasSuffix(output, "$ ") || // regular user prompt
-				strings.HasSuffix(output, "> ") { // alternative prompt
-				safeSend(output)
-				t = 0
-				wg.Done()
-			}
-		}
-	}()
-
-	return in, out
+type commandResult struct {
+	output string
+	err    error
 }
 
-// isRootPrompt checks if the output ends with a root prompt
-func isRootPrompt(output string) bool {
-	// output最后5个字符含有#就说明在root下，返回true
-	return strings.HasSuffix(output, "# ")
+type shellRunner struct {
+	writer   io.Writer
+	outputCh <-chan commandResult
+	timeout  time.Duration
+}
+
+func newShellRunner(w io.Writer, r io.Reader, timeout time.Duration, onChunk func(string)) *shellRunner {
+	outputCh := make(chan commandResult, 1)
+	go streamShellOutput(r, outputCh, onChunk)
+
+	return &shellRunner{
+		writer:   w,
+		outputCh: outputCh,
+		timeout:  timeout,
+	}
+}
+
+func (r *shellRunner) bootstrap() error {
+	_, err := r.readUntilPrompt()
+	return err
+}
+
+func (r *shellRunner) execute(command string) (string, error) {
+	if _, err := fmt.Fprintf(r.writer, "%s\n", command); err != nil {
+		return "", err
+	}
+
+	return r.readUntilPrompt()
+}
+
+func (r *shellRunner) readUntilPrompt() (string, error) {
+	select {
+	case result, ok := <-r.outputCh:
+		if !ok {
+			return "", io.EOF
+		}
+		return result.output, result.err
+	case <-time.After(r.timeout):
+		return "", fmt.Errorf("command timed out after %s", r.timeout)
+	}
+}
+
+func streamShellOutput(reader io.Reader, outputCh chan<- commandResult, onChunk func(string)) {
+	defer close(outputCh)
+
+	bufferedReader := bufio.NewReader(reader)
+	var output strings.Builder
+	var chunk strings.Builder
+
+	for {
+		b, err := bufferedReader.ReadByte()
+		if err != nil {
+			if chunk.Len() > 0 && onChunk != nil {
+				onChunk(chunk.String())
+			}
+			if errors.Is(err, io.EOF) && output.Len() > 0 {
+				outputCh <- commandResult{output: strings.TrimRight(output.String(), "\r\n")}
+			}
+			if !errors.Is(err, io.EOF) {
+				outputCh <- commandResult{err: err}
+			}
+			return
+		}
+
+		output.WriteByte(b)
+		chunk.WriteByte(b)
+		if b == '\n' {
+			if onChunk != nil {
+				onChunk(chunk.String())
+			}
+			chunk.Reset()
+		}
+		if hasShellPrompt(output.String()) {
+			if chunk.Len() > 0 && onChunk != nil {
+				onChunk(chunk.String())
+				chunk.Reset()
+			}
+			outputCh <- commandResult{output: strings.TrimRight(output.String(), "\r\n")}
+			output.Reset()
+		}
+	}
+}
+
+func hasShellPrompt(output string) bool {
+	trimmed := strings.TrimRight(output, "\r\n")
+	return strings.HasSuffix(trimmed, "#") ||
+		strings.HasSuffix(trimmed, "$") ||
+		strings.HasSuffix(trimmed, ">")
+}
+
+var knownHostsMu sync.Mutex
+
+func knownHostsFiles() ([]string, string, error) {
+	if strings.EqualFold(os.Getenv("GWDM_INSECURE_IGNORE_HOST_KEY"), "true") {
+		return nil, "", nil
+	}
+
+	var candidates []string
+	var writablePath string
+	if customPath := strings.TrimSpace(os.Getenv("SSH_KNOWN_HOSTS")); customPath != "" {
+		candidates = append(candidates, customPath)
+		writablePath = customPath
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err == nil && homeDir != "" {
+		userKnownHosts := filepath.Join(homeDir, ".ssh", "known_hosts")
+		candidates = append(candidates, userKnownHosts)
+		if writablePath == "" {
+			writablePath = userKnownHosts
+		}
+	}
+	candidates = append(candidates, "/etc/ssh/ssh_known_hosts")
+
+	knownHostsFiles := make([]string, 0, len(candidates))
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+		if _, err := os.Stat(candidate); err == nil {
+			knownHostsFiles = append(knownHostsFiles, candidate)
+		}
+	}
+
+	if writablePath == "" {
+		return nil, "", errors.New("unable to determine a writable known_hosts path")
+	}
+
+	return knownHostsFiles, writablePath, nil
+}
+
+func ensureKnownHostEntry(path, hostname string, remote net.Addr, key ssh.PublicKey) error {
+	knownHostsMu.Lock()
+	defer knownHostsMu.Unlock()
+
+	host, port, err := net.SplitHostPort(remote.String())
+	if err != nil {
+		host = hostname
+		port = "22"
+	}
+
+	normalizedHosts := []string{hostname}
+	if host != "" && host != hostname {
+		normalizedHosts = append(normalizedHosts, host)
+	}
+	if port != "" && port != "22" {
+		normalizedHosts = append(normalizedHosts, knownhosts.Normalize(fmt.Sprintf("[%s]:%s", host, port)))
+	}
+
+	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	line := knownhosts.Line(normalizedHosts, key)
+	if _, err := fmt.Fprintln(file, line); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func hostKeyCallback() (ssh.HostKeyCallback, error) {
+	if strings.EqualFold(os.Getenv("GWDM_INSECURE_IGNORE_HOST_KEY"), "true") {
+		return ssh.InsecureIgnoreHostKey(), nil
+	}
+
+	files, writablePath, err := knownHostsFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	buildCallback := func() (ssh.HostKeyCallback, error) {
+		if len(files) == 0 {
+			if err := os.MkdirAll(filepath.Dir(writablePath), 0700); err != nil {
+				return nil, err
+			}
+			file, err := os.OpenFile(writablePath, os.O_CREATE, 0600)
+			if err != nil {
+				return nil, err
+			}
+			file.Close()
+			files = append(files, writablePath)
+		}
+		return knownhosts.New(files...)
+	}
+
+	callback, err := buildCallback()
+	if err != nil {
+		return nil, err
+	}
+
+	return func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+		err := callback(hostname, remote, key)
+		if err == nil {
+			return nil
+		}
+
+		var keyErr *knownhosts.KeyError
+		if errors.As(err, &keyErr) && len(keyErr.Want) == 0 {
+			if appendErr := ensureKnownHostEntry(writablePath, hostname, remote, key); appendErr != nil {
+				return fmt.Errorf("failed to trust host %s: %w", hostname, appendErr)
+			}
+
+			callback, err = buildCallback()
+			if err != nil {
+				return err
+			}
+
+			return callback(hostname, remote, key)
+		}
+
+		return err
+	}, nil
 }
 
 // Connect establishes an SSH connection to the specified server
@@ -120,6 +258,10 @@ func (s *SSHService) Connect() (*ssh.Client, error) {
 	timeout := s.Timeout
 	if timeout == 0 {
 		timeout = 30 * time.Second // Default timeout
+	}
+	callback, err := hostKeyCallback()
+	if err != nil {
+		return nil, err
 	}
 	config := &ssh.ClientConfig{
 		User: s.UserName,
@@ -134,9 +276,8 @@ func (s *SSHService) Connect() (*ssh.Client, error) {
 			}),
 			ssh.Password(s.Password),
 		},
-		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			return nil
-		},
+		HostKeyCallback: callback,
+		Timeout:         timeout,
 	}
 
 	addr := fmt.Sprintf("%s:%d", s.IP, s.Port)
@@ -153,6 +294,17 @@ func (s *SSHService) ExecuteCommands(commands []string) ([]string, error) {
 
 	s.OpenCommanderResultWindow()
 	app := application.Get()
+	sequence := 0
+	emitChunk := func(text string) {
+		if text == "" {
+			return
+		}
+		app.Event.Emit("result_chunk", map[string]any{
+			"seq":  sequence,
+			"text": text,
+		})
+		sequence++
+	}
 
 	// Set default timeout if not specified
 	timeout := s.Timeout
@@ -192,49 +344,38 @@ func (s *SSHService) ExecuteCommands(commands []string) ([]string, error) {
 		return nil, fmt.Errorf("unable to get stdout pipe: %w", err)
 	}
 
-	in, out := MuxShell(w, r, timeout)
+	runner := newShellRunner(w, r, timeout, emitChunk)
 
 	if err := session.Shell(); err != nil {
 		return nil, fmt.Errorf("unable to start shell: %w", err)
 	}
 
-	outResult := <-out
-	// ignore the initial shell output
-	app.Event.Emit("result", outResult)
+	if err := runner.bootstrap(); err != nil {
+		return nil, fmt.Errorf("unable to initialize remote shell: %w", err)
+	}
 
 	results := make([]string, 0, len(commands))
-	var lastResult string
 
 	for _, cmd := range commands {
-		in <- cmd
-		time.Sleep(100 * time.Millisecond) // Small delay to ensure command is sent
-		outResult := <-out
+		outResult, err := runner.execute(cmd)
+		results = append(results, outResult)
 
-		app.Event.Emit("result", outResult)
-		// log.Println(outResult)
-		lastResult = outResult
-	}
-
-	defer func() {
-		if r := recover(); r != nil {
-			session.Wait()
-			session.Close()
-			client.Close()
-			app.Event.Emit("result", "finished")
+		if err != nil {
+			emitChunk(err.Error() + "\r\n")
+			return results, err
 		}
-	}()
 
-	// Check if the last output indicates we're in a root environment
-	if isRootPrompt(lastResult) {
-		in <- "exit" // Exit from root shell
-		outResult := <-out
-		app.Event.Emit("result", outResult)
+		time.Sleep(500 * time.Millisecond)
 	}
 
-	// Always exit from the main shell
-	in <- "exit"
-	app.Event.Emit("result", "finished")
-	session.Wait()
+	if _, err := fmt.Fprintln(w, "exit"); err != nil {
+		return results, fmt.Errorf("unable to close remote shell: %w", err)
+	}
+
+	emitChunk("finished\r\n")
+	if err := session.Wait(); err != nil && !strings.Contains(err.Error(), "exit status") {
+		return results, fmt.Errorf("remote shell exited unexpectedly: %w", err)
+	}
 
 	return results, nil
 }

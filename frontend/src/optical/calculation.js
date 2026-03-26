@@ -1,8 +1,22 @@
 // 计算方法整合文件
 
 import { optical } from './optical.js';
-import { Notification, Modal } from '@arco-design/web-vue';
 
+const buildWarning = (currentData, content) => ({
+    key: `${currentData.No}-${currentData.Model}-${content}`,
+    title: 'Warning',
+    content,
+    position: 'bottomRight',
+});
+
+const syncInputsFromPrevious = (currentData, previousData) => {
+    if (!previousData) {
+        return;
+    }
+
+    currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
+    currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
+};
 
 // 根据模型类型获取计算函数
 export const getCalculationFunction = (model) => {
@@ -35,10 +49,7 @@ export const getCalculationFunction = (model) => {
 
 // Mux_DeMux的计算逻辑
 export const calculateMux = (currentData, previousData, data) => {
-    if (previousData) {
-        currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
-        currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
-    }
+    syncInputsFromPrevious(currentData, previousData);
     currentData.SingleOut = (parseFloat(currentData.SingleIn) - parseFloat(currentData.InsertionLoss)).toFixed(2);
     // multiOut = singleIn + 10*LOG10(channel) - currentData.InsertionLoss
     currentData.MultiOut = (
@@ -49,18 +60,15 @@ export const calculateMux = (currentData, previousData, data) => {
 };
 
 export const calculateDeMux = (currentData, previousData, data) => {
-    if (previousData) {
-        currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
-        currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
-    }
+    syncInputsFromPrevious(currentData, previousData);
     currentData.SingleOut = (parseFloat(currentData.SingleIn) - parseFloat(currentData.InsertionLoss)).toFixed(2);
     // multiOut = singleIn + 10*LOG10(channel) - currentData.InsertionLoss
 };
 
 // Module的计算逻辑
 export const calculateModule = (currentData, previousData, data) => {
+    const warnings = [];
     if (previousData) {
-
         currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
         // 先获取所有的edfa项目
         const edfaData = data.filter(item => {
@@ -74,33 +82,28 @@ export const calculateModule = (currentData, previousData, data) => {
     }
     if (parseFloat(currentData.SingleIn) > parseFloat(currentData.Overload) ||
         parseFloat(currentData.SingleIn) < parseFloat(currentData.Sensitivity)) {
-        Notification.clear();
-        Notification.warning({
-            title: 'Warning',
-            content: `The single input power of the item:${currentData.No}: ${currentData.Model} is out of range!`,
-            position: 'bottomRight',
-        });
+        warnings.push(buildWarning(
+            currentData,
+            `The single input power of the item:${currentData.No}: ${currentData.Model} is out of range!`
+        ));
     }
 
+    return warnings;
 };
 
 
 // RAMAN的计算逻辑
 export const calculateRAMAN = (currentData, previousData, data) => {
-    if (previousData) {
-        currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
-        currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
-    }
+    const warnings = [];
+    syncInputsFromPrevious(currentData, previousData);
 
     // 首先需要判断Gain是否在正常范围内
     if (parseFloat(currentData.Gain) < parseFloat(currentData.MinGainLimit) ||
         parseFloat(currentData.Gain) > parseFloat(currentData.MaxGainLimit)) {
-        Notification.clear();
-        Notification.warning({
-            title: 'Warning',
-            content: `The Gain of the item:${currentData.No}: ${currentData.Model} is out of range!`,
-            position: 'bottomRight',
-        });
+        warnings.push(buildWarning(
+            currentData,
+            `The Gain of the item:${currentData.No}: ${currentData.Model} is out of range!`
+        ));
     }
 
     //判断输入是否在范围内
@@ -109,45 +112,38 @@ export const calculateRAMAN = (currentData, previousData, data) => {
         currentData.MultiIn > parseFloat(currentData.MaxInLimit) ||
         currentData.MultiIn < parseFloat(currentData.MinInLimit)
     ) {
-        Notification.clear();
-        Notification.warning({
-            title: 'Warning',
-            content: `The single or multi input power of the item:${currentData.No}: ${currentData.Model}  is out of range!`,
-            position: 'bottomRight',
-        })
+        warnings.push(buildWarning(
+            currentData,
+            `The single or multi input power of the item:${currentData.No}: ${currentData.Model}  is out of range!`
+        ))
     }
     currentData.SingleOut = (parseFloat(currentData.SingleIn) + parseFloat(currentData.Gain)).toFixed(2);
     currentData.MultiOut = (parseFloat(currentData.MultiIn) + parseFloat(currentData.Gain)).toFixed(2);
 
     // 判断输出是否在范围内
     if (currentData.MultiOut > parseFloat(currentData.MaxOutLimit)) {
-        Notification.clear();
-        Notification.warning({
-            title: 'Warning',
-            content: `The multi out power of the item: ${currentData.No}: ${currentData.Model}  is out of range!`,
-            position: 'bottomRight',
-        })
+        warnings.push(buildWarning(
+            currentData,
+            `The multi out power of the item: ${currentData.No}: ${currentData.Model}  is out of range!`
+        ))
     }
 
+    return warnings;
 }
 
 
 // EDFA的计算逻辑
 export const calculateEDFA = (currentData, previousData, data) => {
-    if (previousData) {
-        currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
-        currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
-    }
+    const warnings = [];
+    syncInputsFromPrevious(currentData, previousData);
 
     // 首先需要判断Gain是否在正常范围内
     if (parseFloat(currentData.Gain) < parseFloat(currentData.MinGainLimit) ||
         parseFloat(currentData.Gain) > parseFloat(currentData.MaxGainLimit)) {
-        Notification.clear();
-        Notification.warning({
-            title: 'Warning',
-            content: `The Gain of the item:${currentData.No}: ${currentData.Model} is out of range!`,
-            position: 'bottomRight',
-        });
+        warnings.push(buildWarning(
+            currentData,
+            `The Gain of the item:${currentData.No}: ${currentData.Model} is out of range!`
+        ));
     }
     //判断输入是否在范围内
     if (currentData.SingleIn > parseFloat(currentData.MaxInLimit) ||
@@ -155,24 +151,20 @@ export const calculateEDFA = (currentData, previousData, data) => {
         currentData.MultiIn > parseFloat(currentData.MaxInLimit) ||
         currentData.MultiIn < parseFloat(currentData.MinInLimit)
     ) {
-        Notification.clear();
-        Notification.warning({
-            title: 'Warning',
-            content: `The single or multi input power of the item:${currentData.No}: ${currentData.Model}  is out of range!`,
-            position: 'bottomRight',
-        })
+        warnings.push(buildWarning(
+            currentData,
+            `The single or multi input power of the item:${currentData.No}: ${currentData.Model}  is out of range!`
+        ))
     }
     currentData.SingleOut = (parseFloat(currentData.SingleIn) + parseFloat(currentData.Gain)).toFixed(2);
     currentData.MultiOut = (parseFloat(currentData.MultiIn) + parseFloat(currentData.Gain)).toFixed(2);
 
     // 判断输出是否在范围内
     if (currentData.MultiOut > parseFloat(currentData.MaxOutLimit)) {
-        Notification.clear();
-        Notification.warning({
-            title: 'Warning',
-            content: `The multi out power of the item: ${currentData.No}: ${currentData.Model}  is out of range!`,
-            position: 'bottomRight',
-        })
+        warnings.push(buildWarning(
+            currentData,
+            `The multi out power of the item: ${currentData.No}: ${currentData.Model}  is out of range!`
+        ))
     }
     // 如果上一级是RAMAN，则计算等效NF
     if (previousData && optical.RAMAN.some(item => item.Model === previousData.Model)) {
@@ -180,14 +172,13 @@ export const calculateEDFA = (currentData, previousData, data) => {
     } else {
         currentData.EquivalentNF = parseFloat(currentData.NF).toFixed(2);
     }
+
+    return warnings;
 };
 
 // Fiber的计算逻辑
 export const calculateFiber = (currentData, previousData, data) => {
-    if (previousData) {
-        currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
-        currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
-    }
+    syncInputsFromPrevious(currentData, previousData);
     currentData.SpanLoss = (parseFloat(currentData.Distance) * parseFloat(currentData.PerKmLoss)).toFixed(2)
     currentData.SingleOut = (parseFloat(currentData.SingleIn) - parseFloat(currentData.SpanLoss)).toFixed(2);
     currentData.MultiOut = (parseFloat(currentData.MultiIn) - parseFloat(currentData.SpanLoss)).toFixed(2);
@@ -195,10 +186,7 @@ export const calculateFiber = (currentData, previousData, data) => {
 
 // ROADM的计算逻辑
 export const calculateROADM = (currentData, previousData, data) => {
-    if (previousData) {
-        currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
-        currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
-    }
+    syncInputsFromPrevious(currentData, previousData);
     currentData.SingleOut = (parseFloat(currentData.SingleIn) - parseFloat(currentData.InsertionLoss)).toFixed(2);
     // multiOut = singleIn + 10*LOG10(channel) - currentData.InsertionLoss
     currentData.MultiOut = (
@@ -209,10 +197,7 @@ export const calculateROADM = (currentData, previousData, data) => {
 };
 // OLP的计算逻辑
 export const calculateOLP = (currentData, previousData, data) => {
-    if (previousData) {
-        currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
-        currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
-    }
+    syncInputsFromPrevious(currentData, previousData);
     currentData.SingleOut = (parseFloat(currentData.SingleIn) - parseFloat(currentData.InsertionLoss)).toFixed(2);
     // multiOut = singleIn + 10*LOG10(channel) - currentData.InsertionLoss
     currentData.MultiOut = (
@@ -223,19 +208,13 @@ export const calculateOLP = (currentData, previousData, data) => {
 };
 // DCM的计算逻辑
 export const calculateDCM = (currentData, previousData, data) => {
-    if (previousData) {
-        currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
-        currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
-    }
+    syncInputsFromPrevious(currentData, previousData);
     currentData.SingleOut = (parseFloat(currentData.SingleIn) - parseFloat(currentData.SpanLoss)).toFixed(2);
     currentData.MultiOut = (parseFloat(currentData.MultiIn) - parseFloat(currentData.SpanLoss)).toFixed(2);
 };
 
 export const calculateVOA = (currentData, previousData, data) => {
-    if (previousData) {
-        currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
-        currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
-    }
+    syncInputsFromPrevious(currentData, previousData);
     currentData.SingleOut = (parseFloat(currentData.SingleIn) - parseFloat(currentData.InsertionLoss)).toFixed(2);
     currentData.MultiOut = (parseFloat(currentData.MultiIn) - parseFloat(currentData.InsertionLoss)).toFixed(2);
 }
@@ -244,6 +223,7 @@ export const calculateVOA = (currentData, previousData, data) => {
 
 // 主计算函数
 export const calculateLink = (data) => {
+    const warnings = [];
     for (let i = 0; i < data.length; i++) {
         const currentData = data[i];
         const previousData = i > 0 ? data[i - 1] : null;
@@ -253,7 +233,8 @@ export const calculateLink = (data) => {
             const calculateFunc = getCalculationFunction(currentData.Model);
 
             if (calculateFunc) {
-                calculateFunc(currentData, previousData, data);
+                const currentWarnings = calculateFunc(currentData, previousData, data) || [];
+                warnings.push(...currentWarnings);
             } else {
                 // 默认情况下，将前一个的SingleOut设置为当前的SingleIn
                 if (previousData) {
@@ -275,6 +256,8 @@ export const calculateLink = (data) => {
             currentData.MultiOut = parseFloat(currentData.MultiIn || 0).toFixed(2);
         }
     }
+
+    return warnings;
 };
 
 // OSNR计算函数

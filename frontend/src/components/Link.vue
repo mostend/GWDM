@@ -124,7 +124,7 @@ import { calculateLink, calculateOSNR } from '../optical/calculation.js';
 import { renderOSNRChart, renderLinkChart } from '../optical/chart.js';
 import { reactive, ref, computed, watch, onMounted } from 'vue';
 import { IconPlus, IconPlusCircle, IconDelete, IconEye, IconLink, IconSave, IconUpload } from '@arco-design/web-vue/es/icon';
-import { Notification, Modal } from '@arco-design/web-vue';
+import { Notification } from '@arco-design/web-vue';
 import { debounce } from 'lodash';
 import * as echarts from 'echarts';
 
@@ -214,6 +214,29 @@ const data = reactive([
 
 const cascaderOptions = getCascaderOptions(optical)
 
+const showWarnings = (warnings) => {
+    Notification.clear();
+
+    const uniqueWarnings = new Map();
+    warnings.forEach((warning) => {
+        uniqueWarnings.set(warning.key, warning);
+    });
+
+    uniqueWarnings.forEach((warning) => {
+        Notification.warning({
+            title: warning.title,
+            content: warning.content,
+            position: warning.position,
+        });
+    });
+};
+
+const applyCalculations = (rows) => {
+    const warnings = calculateLink(rows);
+    calculateOSNR(rows);
+    showWarnings(warnings);
+};
+
 // 定义操作按钮的处理函数
 const addToLast = (rowIndex) => {
     // 添加到末尾的逻辑
@@ -228,8 +251,7 @@ const addToLast = (rowIndex) => {
         SiteName: '',
     };
     data.push(newRow);
-    calculateLink(data);
-    calculateOSNR(data);
+    debouncedCalculateData(data);
 };
 
 const addToNext = (rowIndex) => {
@@ -249,8 +271,7 @@ const addToNext = (rowIndex) => {
     for (let i = 0; i < data.length; i++) {
         data[i].No = i + 1;
     }
-    calculateLink(data);
-    calculateOSNR(data);
+    debouncedCalculateData(data);
 };
 
 const deleteRow = (rowIndex) => {
@@ -269,8 +290,7 @@ const deleteRow = (rowIndex) => {
             // 如果选中的行在被删除行之后，需要更新选中行索引
             selectedRow.value = selectedRow.value - 1;
         }
-        calculateLink(data);
-        calculateOSNR(data);
+        debouncedCalculateData(data);
     }
 };
 
@@ -369,8 +389,7 @@ const onModelChange = (value, rowIndex) => {
         data.splice(rowIndex, 1, newData);
 
         // 触发计算
-        calculateLink(data);
-        calculateOSNR(data);
+        debouncedCalculateData(data);
     }
 };
 
@@ -427,14 +446,13 @@ const uploadData = () => {
 
 // 创建防抖版本的计算函数
 const debouncedCalculateData = debounce((data) => {
-    calculateLink(data);
-    calculateOSNR(data);
+    applyCalculations(data);
 }, 100); // 100ms 的防抖延迟
 
 // 修改 watch 监听器
 watch(data, (newData) => {
     debouncedCalculateData(newData);
-}, { deep: true });
+}, { deep: true, immediate: true });
 
 // 监听窗口大小变化，重新调整图表大小
 onMounted(() => {
