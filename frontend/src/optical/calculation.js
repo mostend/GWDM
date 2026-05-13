@@ -262,57 +262,58 @@ export const calculateLink = (data) => {
 
 // OSNR计算函数
 export const calculateOSNR = (data) => {
-    // 先获取所有的edfa项目
     const edfaData = data.filter(item => {
-        // 检查item.Model是否在optical.EDFA数组中
         return optical.EDFA.some(edfa => edfa.Model === item.Model);
     });
-    calculateCascadedOSNR(edfaData);
+    calculateCascadedOSNR(edfaData, data);
 };
 
-function calculateCascadedOSNR(stages) {
+function calculateCascadedOSNR(stages, data) {
+    if (!stages || stages.length === 0) return;
 
-    // --- 物理常量 ---
-    const h = 6.62607e-34; // 普朗克常数 (J·s)
-    const c = 2.99792458e8;  // 真空中的光速 (m/s)
+    const n = stages.length;
+    const firstStageSingleIn = parseFloat(stages[0].SingleIn);
 
-    // --- 单位转换辅助函数 ---
-    const dbmToWatts = (dbm) => Math.pow(10, (dbm - 30) / 10);
-    const dbToLinear = (db) => Math.pow(10, db / 10);
-    const linearToDb = (linear) => 10 * Math.log10(linear);
+    const moduleData = data.find(item =>
+        optical.Module.some(mod => mod.Model === item.Model)
+    );
+    const moduleSingleIn = moduleData ? parseFloat(moduleData.SingleIn) : 0;
 
-    // --- 初始参数计算 ---
-    const wavelength = 1550; // 默认波长为1550nm
-    const referenceBandwidth = 12.5; // 默认
-    // --- 初始参数计算 ---
-    const f = c / (wavelength * 1e-9); // 光频率 (Hz)
-    const Br = referenceBandwidth * 1e9; // 参考带宽 (Hz)
+    let cumulativeDeltaGxLProduct = 1;
+    let prevF_linear = null;
+    let prevL_linear = null;
 
-
-    // OSNR的倒数累加，1/OSNR_total = 1/OSNR_1 + 1/OSNR_2 + ...
-    // 而每一级的 1/OSNR_stage = (F * h * f * Br) / P_in
-    // 所以我们直接累加 (F * h * f * Br) / P_in
-    let totalInverseOsnr = 0; // 初始信号无噪声，1/OSNR_in ≈ 0
-
-    for (let i = 0; i < stages.length; i++) {
+    for (let i = 0; i < n; i++) {
         const stage = stages[i];
-        // --- 参数线性化 ---
-        const Pin_linear = dbmToWatts(stage.SingleIn);
-        const F_linear = dbToLinear(stage.EquivalentNF);
+        const gain = parseFloat(stage.Gain);
+        const equivalentNF = parseFloat(stage.EquivalentNF);
 
-        // --- 计算当前级的ASE噪声贡献 ---
-        // 这个值实际上是 (Signal / Noise_ASE)^-1，即信噪比的倒数
-        const stageInverseOsnr = (F_linear * h * f * Br) / Pin_linear;
+        const G_linear = Math.pow(10, gain / 10);
+        const F_linear = Math.pow(10, equivalentNF / 10);
 
-        // --- 累加总的OSNR倒数 ---
-        totalInverseOsnr += stageInverseOsnr;
+        let spanLoss;
+        if (i === n - 1) {
+            spanLoss = parseFloat(stage.SingleOut) - moduleSingleIn;
+        } else {
+            const nextStage = stages[i + 1];
+            spanLoss = parseFloat(stage.SingleOut) - parseFloat(nextStage.SingleIn);
+        }
 
-        // --- 计算当前级的输出参数 ---
-        const stageOutputOsnr_linear = 1 / totalInverseOsnr;
-        stage.OSNR = linearToDb(stageOutputOsnr_linear).toFixed(2);
+        const L_linear = Math.pow(10, -spanLoss / 10);
+        const DeltaGxL = G_linear * L_linear;
 
-        // const finalOsnr_linear = 1 / totalInverseOsnr;
-        // const finalOsnr_dB = linearToDb(finalOsnr_linear);
+        let Fsys_linear;
+        if (i === 0) {
+            Fsys_linear = F_linear;
+        } else {
+            Fsys_linear = prevF_linear + (F_linear - prevL_linear) / cumulativeDeltaGxLProduct;
+        }
+
+        const Fsys_dB = 10 * Math.log10(Fsys_linear);
+        stage.OSNR = (firstStageSingleIn + 58 - Fsys_dB).toFixed(2);
+
+        cumulativeDeltaGxLProduct *= DeltaGxL;
+        prevF_linear = Fsys_linear;
+        prevL_linear = L_linear;
     }
-
 }

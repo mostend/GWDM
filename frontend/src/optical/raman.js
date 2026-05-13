@@ -11,7 +11,7 @@ export const raman = [
         MaxGainLimit: 30,
         MinGainLimit: 15,
         Gain: 20,
-        EquivalentNF: -8.5,
+        EquivalentNF: -3,
         OSNR: NaN,
         SiteName: "",
     }
