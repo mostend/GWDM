@@ -1,13 +1,13 @@
 {
 	"fixed": {
-		"file_version": "1.0.3"
+		"file_version": "1.0.4"
 	},
 	"info": {
 		"0000": {
-			"ProductVersion": "1.0.3",
+			"ProductVersion": "1.0.4",
 			"CompanyName": "GWDM",
 			"FileDescription": "A WDM system calculation tool",
-			"LegalCopyright": "© 2025, GWDM",
+			"LegalCopyright": "© 2026, GWDM",
 			"ProductName": "GWDM",
 			"Comments": "A WDM system calculation tool"
 		}
