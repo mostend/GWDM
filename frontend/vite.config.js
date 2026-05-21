@@ -5,4 +5,8 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [vue()],
+  server: {
+    port: 9245,
+    strictPort: true,
+  },
 });
