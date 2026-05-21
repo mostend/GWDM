@@ -32,8 +32,12 @@ function IsResultWindow() {
   </div>
 </template>
 <style scoped>
+/* App.vue */
 .main {
-  height: calc(100% - 58px);
+  flex: 1;
+  overflow: auto;
+  /* 内容过多时在 .main 内部滚动 */
   width: 100%;
+  /* 去掉 height: calc(...) */
 }
 </style>

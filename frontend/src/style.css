@@ -5,3 +5,10 @@ html, body {
   height: 100%;
   background-color: whitesmoke;
 }
+
+/* style.css */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
