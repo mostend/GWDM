@@ -7537,7 +7537,24 @@ var calculateRAMAN = (currentData, previousData, data) => {
 	const warnings = [];
 	syncInputsFromPrevious(currentData, previousData);
 	if (parseFloat(currentData.Gain) < parseFloat(currentData.MinGainLimit) || parseFloat(currentData.Gain) > parseFloat(currentData.MaxGainLimit)) warnings.push(buildWarning(currentData, `The Gain of the item:${currentData.No}: ${currentData.Model} is out of range!`));
-	if (currentData.SingleIn > parseFloat(currentData.MaxInLimit) || currentData.SingleIn < parseFloat(currentData.MinInLimit) || currentData.MultiIn > parseFloat(currentData.MaxInLimit) || currentData.MultiIn < parseFloat(currentData.MinInLimit)) warnings.push(buildWarning(currentData, `The single or multi input power of the item:${currentData.No}: ${currentData.Model}  is out of range!`));
+	const multiInValue = parseFloat(currentData.MultiIn);
+	const singleInValue = parseFloat(currentData.SingleIn);
+	const maxInLimit = parseFloat(currentData.MaxInLimit);
+	const minInLimit = parseFloat(currentData.MinInLimit);
+	let isInputOutOfRange = false;
+	let inputType = "";
+	if (!isNaN(multiInValue)) {
+		if (multiInValue > maxInLimit || multiInValue < minInLimit) {
+			isInputOutOfRange = true;
+			inputType = "multi";
+		}
+	} else if (!isNaN(singleInValue)) {
+		if (singleInValue > maxInLimit || singleInValue < minInLimit) {
+			isInputOutOfRange = true;
+			inputType = "single";
+		}
+	}
+	if (isInputOutOfRange) warnings.push(buildWarning(currentData, `The ${inputType} input power of the item:${currentData.No}: ${currentData.Model} is out of range!`));
 	currentData.SingleOut = (parseFloat(currentData.SingleIn) + parseFloat(currentData.Gain)).toFixed(2);
 	currentData.MultiOut = (parseFloat(currentData.MultiIn) + parseFloat(currentData.Gain)).toFixed(2);
 	if (currentData.MultiOut > parseFloat(currentData.MaxOutLimit)) warnings.push(buildWarning(currentData, `The multi out power of the item: ${currentData.No}: ${currentData.Model}  is out of range!`));
@@ -7547,7 +7564,24 @@ var calculateEDFA = (currentData, previousData, data) => {
 	const warnings = [];
 	syncInputsFromPrevious(currentData, previousData);
 	if (parseFloat(currentData.Gain) < parseFloat(currentData.MinGainLimit) || parseFloat(currentData.Gain) > parseFloat(currentData.MaxGainLimit)) warnings.push(buildWarning(currentData, `The Gain of the item:${currentData.No}: ${currentData.Model} is out of range!`));
-	if (currentData.SingleIn > parseFloat(currentData.MaxInLimit) || currentData.SingleIn < parseFloat(currentData.MinInLimit) || currentData.MultiIn > parseFloat(currentData.MaxInLimit) || currentData.MultiIn < parseFloat(currentData.MinInLimit)) warnings.push(buildWarning(currentData, `The single or multi input power of the item:${currentData.No}: ${currentData.Model}  is out of range!`));
+	const multiInValue = parseFloat(currentData.MultiIn);
+	const singleInValue = parseFloat(currentData.SingleIn);
+	const maxInLimit = parseFloat(currentData.MaxInLimit);
+	const minInLimit = parseFloat(currentData.MinInLimit);
+	let isInputOutOfRange = false;
+	let inputType = "";
+	if (!isNaN(multiInValue)) {
+		if (multiInValue > maxInLimit || multiInValue < minInLimit) {
+			isInputOutOfRange = true;
+			inputType = "multi";
+		}
+	} else if (!isNaN(singleInValue)) {
+		if (singleInValue > maxInLimit || singleInValue < minInLimit) {
+			isInputOutOfRange = true;
+			inputType = "single";
+		}
+	}
+	if (isInputOutOfRange) warnings.push(buildWarning(currentData, `The ${inputType} input power of the item:${currentData.No}: ${currentData.Model} is out of range!`));
 	currentData.SingleOut = (parseFloat(currentData.SingleIn) + parseFloat(currentData.Gain)).toFixed(2);
 	currentData.MultiOut = (parseFloat(currentData.MultiIn) + parseFloat(currentData.Gain)).toFixed(2);
 	if (currentData.MultiOut > parseFloat(currentData.MaxOutLimit)) warnings.push(buildWarning(currentData, `The multi out power of the item: ${currentData.No}: ${currentData.Model}  is out of range!`));

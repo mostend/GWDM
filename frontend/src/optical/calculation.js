@@ -13,7 +13,6 @@ const syncInputsFromPrevious = (currentData, previousData) => {
     if (!previousData) {
         return;
     }
-
     currentData.SingleIn = parseFloat(previousData.SingleOut).toFixed(2);
     currentData.MultiIn = parseFloat(previousData.MultiOut).toFixed(2);
 };
@@ -106,17 +105,36 @@ export const calculateRAMAN = (currentData, previousData, data) => {
         ));
     }
 
-    //判断输入是否在范围内
-    if (currentData.SingleIn > parseFloat(currentData.MaxInLimit) ||
-        currentData.SingleIn < parseFloat(currentData.MinInLimit) ||
-        currentData.MultiIn > parseFloat(currentData.MaxInLimit) ||
-        currentData.MultiIn < parseFloat(currentData.MinInLimit)
-    ) {
+    //判断输入是否在范围内：优先判断MultiIn，如果不存在则判断SingleIn
+    const multiInValue = parseFloat(currentData.MultiIn);
+    const singleInValue = parseFloat(currentData.SingleIn);
+    const maxInLimit = parseFloat(currentData.MaxInLimit);
+    const minInLimit = parseFloat(currentData.MinInLimit);
+
+    let isInputOutOfRange = false;
+    let inputType = '';
+
+    if (!isNaN(multiInValue)) {
+        // MultiIn存在，只判断MultiIn
+        if (multiInValue > maxInLimit || multiInValue < minInLimit) {
+            isInputOutOfRange = true;
+            inputType = 'multi';
+        }
+    } else if (!isNaN(singleInValue)) {
+        // MultiIn不存在，判断SingleIn
+        if (singleInValue > maxInLimit || singleInValue < minInLimit) {
+            isInputOutOfRange = true;
+            inputType = 'single';
+        }
+    }
+
+    if (isInputOutOfRange) {
         warnings.push(buildWarning(
             currentData,
-            `The single or multi input power of the item:${currentData.No}: ${currentData.Model}  is out of range!`
-        ))
+            `The ${inputType} input power of the item:${currentData.No}: ${currentData.Model} is out of range!`
+        ));
     }
+
     currentData.SingleOut = (parseFloat(currentData.SingleIn) + parseFloat(currentData.Gain)).toFixed(2);
     currentData.MultiOut = (parseFloat(currentData.MultiIn) + parseFloat(currentData.Gain)).toFixed(2);
 
@@ -145,17 +163,37 @@ export const calculateEDFA = (currentData, previousData, data) => {
             `The Gain of the item:${currentData.No}: ${currentData.Model} is out of range!`
         ));
     }
-    //判断输入是否在范围内
-    if (currentData.SingleIn > parseFloat(currentData.MaxInLimit) ||
-        currentData.SingleIn < parseFloat(currentData.MinInLimit) ||
-        currentData.MultiIn > parseFloat(currentData.MaxInLimit) ||
-        currentData.MultiIn < parseFloat(currentData.MinInLimit)
-    ) {
+
+    //判断输入是否在范围内：优先判断MultiIn，如果不存在则判断SingleIn
+    const multiInValue = parseFloat(currentData.MultiIn);
+    const singleInValue = parseFloat(currentData.SingleIn);
+    const maxInLimit = parseFloat(currentData.MaxInLimit);
+    const minInLimit = parseFloat(currentData.MinInLimit);
+
+    let isInputOutOfRange = false;
+    let inputType = '';
+
+    if (!isNaN(multiInValue)) {
+        // MultiIn存在，只判断MultiIn
+        if (multiInValue > maxInLimit || multiInValue < minInLimit) {
+            isInputOutOfRange = true;
+            inputType = 'multi';
+        }
+    } else if (!isNaN(singleInValue)) {
+        // MultiIn不存在，判断SingleIn
+        if (singleInValue > maxInLimit || singleInValue < minInLimit) {
+            isInputOutOfRange = true;
+            inputType = 'single';
+        }
+    }
+
+    if (isInputOutOfRange) {
         warnings.push(buildWarning(
             currentData,
-            `The single or multi input power of the item:${currentData.No}: ${currentData.Model}  is out of range!`
-        ))
+            `The ${inputType} input power of the item:${currentData.No}: ${currentData.Model} is out of range!`
+        ));
     }
+
     currentData.SingleOut = (parseFloat(currentData.SingleIn) + parseFloat(currentData.Gain)).toFixed(2);
     currentData.MultiOut = (parseFloat(currentData.MultiIn) + parseFloat(currentData.Gain)).toFixed(2);
 
