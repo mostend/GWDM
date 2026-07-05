@@ -63,7 +63,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 //#endregion
 //#region node_modules/@vue/shared/dist/shared.esm-bundler.js
 /**
-* @vue/shared v3.5.38
+* @vue/shared v3.5.39
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
 * @license MIT
 **/
@@ -250,7 +250,7 @@ var stringifySymbol = (v, i = "") => {
 //#endregion
 //#region node_modules/@vue/reactivity/dist/reactivity.esm-bundler.js
 /**
-* @vue/reactivity v3.5.38
+* @vue/reactivity v3.5.39
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
 * @license MIT
 **/
@@ -1021,7 +1021,7 @@ var MutableReactiveHandler = class extends BaseReactiveHandler {
 		}
 		const hadKey = isArrayWithIntegerKey ? Number(key) < target.length : hasOwn$1(target, key);
 		const result = Reflect.set(target, key, value, /* @__PURE__ */ isRef(target) ? target : receiver);
-		if (target === /* @__PURE__ */ toRaw(receiver)) {
+		if (target === /* @__PURE__ */ toRaw(receiver) && result) {
 			if (!hadKey) trigger$2(target, "add", key, value);
 			else if (hasChanged(value, oldValue)) trigger$2(target, "set", key, value, oldValue);
 		}
@@ -1599,7 +1599,7 @@ function traverse(value, depth = Infinity, seen) {
 //#endregion
 //#region node_modules/@vue/runtime-core/dist/runtime-core.esm-bundler.js
 /**
-* @vue/runtime-core v3.5.38
+* @vue/runtime-core v3.5.39
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
 * @license MIT
 **/
@@ -1968,7 +1968,8 @@ var TeleportImpl = {
 				if (pendingMounts.get(vnode) !== mountJob) return;
 				pendingMounts.delete(vnode);
 				if (isTeleportDisabled(vnode.props)) {
-					mount(vnode, parentNode(vnode.el) || container, vnode.anchor);
+					const mountContainer = parentNode(vnode.el) || container;
+					mount(vnode, mountContainer, vnode.anchor);
 					updateCssVars(vnode, true);
 				}
 				mountToTarget(vnode);
@@ -2016,15 +2017,19 @@ var TeleportImpl = {
 				if (!wasDisabled) moveTeleport(n2, container, mainAnchor, internals, 1);
 				else if (n2.props && n1.props && n2.props.to !== n1.props.to) n2.props.to = n1.props.to;
 			} else if ((n2.props && n2.props.to) !== (n1.props && n1.props.to)) {
-				const nextTarget = n2.target = resolveTarget(n2.props, querySelector);
-				if (nextTarget) moveTeleport(n2, nextTarget, null, internals, 0);
+				const nextTarget = resolveTarget(n2.props, querySelector);
+				if (nextTarget) {
+					n2.target = nextTarget;
+					moveTeleport(n2, nextTarget, null, internals, 0);
+				}
 			} else if (wasDisabled) moveTeleport(n2, target, targetAnchor, internals, 1);
 			updateCssVars(n2, disabled);
 		}
 	},
 	remove(vnode, parentComponent, parentSuspense, { um: unmount, o: { remove: hostRemove } }, doRemove) {
 		const { shapeFlag, children, anchor, targetStart, targetAnchor, target, props } = vnode;
-		const shouldRemove = doRemove || !isTeleportDisabled(props);
+		const disabled = isTeleportDisabled(props);
+		const shouldRemove = doRemove || !disabled;
 		const pendingMount = pendingMounts.get(vnode);
 		if (pendingMount) {
 			pendingMount.flags |= 8;
@@ -2035,7 +2040,7 @@ var TeleportImpl = {
 			hostRemove(targetAnchor);
 		}
 		doRemove && hostRemove(anchor);
-		if (!pendingMount && shapeFlag & 16) for (let i = 0; i < children.length; i++) {
+		if (!pendingMount && (disabled || target) && shapeFlag & 16) for (let i = 0; i < children.length; i++) {
 			const child = children[i];
 			unmount(child, parentComponent, parentSuspense, shouldRemove, !!child.dynamicChildren);
 		}
@@ -2404,8 +2409,14 @@ function setRef(rawRef, oldRawRef, parentSuspense, vnode, isUnmount = false) {
 			if (oldRawRefAtom.k) refs[oldRawRefAtom.k] = null;
 		}
 	}
-	if (isFunction$3(ref)) callWithErrorHandling(ref, owner, 12, [value, refs]);
-	else {
+	if (isFunction$3(ref)) {
+		pauseTracking();
+		try {
+			callWithErrorHandling(ref, owner, 12, [value, refs]);
+		} finally {
+			resetTracking();
+		}
+	} else {
 		const _isString = isString$3(ref);
 		const _isRef = /* @__PURE__ */ isRef(ref);
 		if (_isString || _isRef) {
@@ -3056,7 +3067,8 @@ function normalizeEmitsOptions(comp, appContext, asMixin = false) {
 }
 function isEmitListener(options, key) {
 	if (!options || !isOn(key)) return false;
-	key = key.slice(2).replace(/Once$/, "");
+	key = key.slice(2);
+	key = key === "Once" ? key : key.replace(/Once$/, "");
 	return hasOwn$1(options, key[0].toLowerCase() + key.slice(1)) || hasOwn$1(options, hyphenate(key)) || hasOwn$1(options, key);
 }
 function renderComponentRoot(instance) {
@@ -3521,7 +3533,10 @@ function baseCreateRenderer(options, createHydrationFns) {
 		}
 	};
 	const mountChildren = (children, container, anchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized, start = 0) => {
-		for (let i = start; i < children.length; i++) patch(null, children[i] = optimized ? cloneIfMounted(children[i]) : normalizeVNode(children[i]), container, anchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized);
+		for (let i = start; i < children.length; i++) {
+			const child = children[i] = optimized ? cloneIfMounted(children[i]) : normalizeVNode(children[i]);
+			patch(null, child, container, anchor, parentComponent, parentSuspense, namespace, slotScopeIds, optimized);
+		}
 	};
 	const patchElement = (n1, n2, parentComponent, parentSuspense, namespace, slotScopeIds, optimized) => {
 		const el = n2.el = n1.el;
@@ -3534,6 +3549,11 @@ function baseCreateRenderer(options, createHydrationFns) {
 		if (vnodeHook = newProps.onVnodeBeforeUpdate) invokeVNodeHook(vnodeHook, parentComponent, n2, n1);
 		if (dirs) invokeDirectiveHook(n2, n1, parentComponent, "beforeUpdate");
 		parentComponent && toggleRecurse(parentComponent, true);
+		if (dynamicChildren && (!n1.dynamicChildren || n1.dynamicChildren.length !== dynamicChildren.length)) {
+			patchFlag = 0;
+			optimized = false;
+			dynamicChildren = null;
+		}
 		if (oldProps.innerHTML && newProps.innerHTML == null || oldProps.textContent && newProps.textContent == null) hostSetElementText(el, "");
 		if (dynamicChildren) patchBlockChildren(n1.dynamicChildren, dynamicChildren, el, parentComponent, parentSuspense, resolveChildrenNamespace(n2, namespace), slotScopeIds);
 		else if (!optimized) patchChildren(n1, n2, el, null, parentComponent, parentSuspense, resolveChildrenNamespace(n2, namespace), slotScopeIds, false);
@@ -3567,7 +3587,8 @@ function baseCreateRenderer(options, createHydrationFns) {
 		for (let i = 0; i < newChildren.length; i++) {
 			const oldVNode = oldChildren[i];
 			const newVNode = newChildren[i];
-			patch(oldVNode, newVNode, oldVNode.el && (oldVNode.type === Fragment || !isSameVNodeType(oldVNode, newVNode) || oldVNode.shapeFlag & 198) ? hostParentNode(oldVNode.el) : fallbackContainer, null, parentComponent, parentSuspense, namespace, slotScopeIds, true);
+			const container = oldVNode.el && (oldVNode.type === Fragment || !isSameVNodeType(oldVNode, newVNode) || oldVNode.shapeFlag & 198) ? hostParentNode(oldVNode.el) : fallbackContainer;
+			patch(oldVNode, newVNode, container, null, parentComponent, parentSuspense, namespace, slotScopeIds, true);
 		}
 	};
 	const patchProps = (el, oldProps, newProps, parentComponent, namespace) => {
@@ -4303,6 +4324,10 @@ function normalizeChildren(vnode, children) {
 		}
 	}
 	else if (isFunction$3(children)) {
+		if (shapeFlag & 65) {
+			normalizeChildren(vnode, { default: children });
+			return;
+		}
 		children = {
 			default: children,
 			_ctx: currentRenderingInstance
@@ -4571,11 +4596,11 @@ function h(type, propsOrChildren, children) {
 		setBlockTracking(1);
 	}
 }
-var version$2 = "3.5.38";
+var version$2 = "3.5.39";
 //#endregion
 //#region node_modules/@vue/runtime-dom/dist/runtime-dom.esm-bundler.js
 /**
-* @vue/runtime-dom v3.5.38
+* @vue/runtime-dom v3.5.39
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
 * @license MIT
 **/
@@ -5016,16 +5041,15 @@ function patchEvent(el, rawName, prevValue, nextValue, instance = null) {
 		}
 	}
 }
-var optionsModifierRE = /(?:Once|Passive|Capture)$/;
+var optionsModifierRE = /(Once|Passive|Capture)$/;
+var optionsModifierEventRE = /^on:?(?:Once|Passive|Capture)$/;
 function parseName(name) {
 	let options;
-	if (optionsModifierRE.test(name)) {
-		options = {};
-		let m;
-		while (m = name.match(optionsModifierRE)) {
-			name = name.slice(0, name.length - m[0].length);
-			options[m[0].toLowerCase()] = true;
-		}
+	let m;
+	while ((m = name.match(optionsModifierRE)) && !optionsModifierEventRE.test(name)) {
+		if (!options) options = {};
+		name = name.slice(0, name.length - m[1].length);
+		options[m[1].toLowerCase()] = true;
 	}
 	return [name[2] === ":" ? name.slice(3) : hyphenate(name.slice(2)), options];
 }
@@ -15234,7 +15258,10 @@ var _sfc_main$136 = /* @__PURE__ */ defineComponent({
 		const handleScroll = throttleByRaf(() => {
 			if (isScrolling.value) return;
 			const element = getFirstInViewportEle();
-			if (element && element.id) handleAnchorChange(`#${element.id}`);
+			if (element && element.id) {
+				const hash = `#${element.id}`;
+				handleAnchorChange(hash);
+			}
 		});
 		const handleAnchorChange = (hash) => {
 			if (!links[hash] && anchorRef.value) {
@@ -15505,12 +15532,14 @@ function useCursor(input) {
 		if (!input.value) return;
 		const { selectionStart, selectionEnd, value } = input.value;
 		if (selectionStart == null || selectionEnd == null) return;
+		const beforeTxt = value.slice(0, Math.max(0, selectionStart));
+		const afterTxt = value.slice(Math.max(0, selectionEnd));
 		selectionRef.value = {
 			selectionStart,
 			selectionEnd,
 			value,
-			beforeTxt: value.slice(0, Math.max(0, selectionStart)),
-			afterTxt: value.slice(Math.max(0, selectionEnd))
+			beforeTxt,
+			afterTxt
 		};
 	}
 	function setCursor() {
@@ -18440,13 +18469,14 @@ var getKeyDownHandler = (codeKeyMap) => {
 		map[stringifyCodeKey(_codeKey)] = callback;
 	});
 	return (event) => {
-		const callback = map[stringifyCodeKey({
+		const key = stringifyCodeKey({
 			key: event.key,
 			ctrl: event.ctrlKey,
 			shift: event.shiftKey,
 			alt: event.altKey,
 			meta: event.metaKey
-		})];
+		});
+		const callback = map[key];
 		if (callback) {
 			event.stopPropagation();
 			callback(event);
@@ -22044,7 +22074,8 @@ var _InputTag = /* @__PURE__ */ defineComponent({
 		};
 		const handleRemove = (value, index, e) => {
 			var _a;
-			updateValue((_a = computedValue.value) == null ? void 0 : _a.filter((_, i) => i !== index), e);
+			const newValue = (_a = computedValue.value) == null ? void 0 : _a.filter((_, i) => i !== index);
+			updateValue(newValue, e);
 			emit("remove", value, e);
 		};
 		const handleClear = (e) => {
@@ -22060,7 +22091,8 @@ var _InputTag = /* @__PURE__ */ defineComponent({
 					emit("pressEnter", computedInputValue.value, e);
 					return;
 				}
-				updateValue(computedValue.value.concat(computedInputValue.value), e);
+				const newValue = computedValue.value.concat(computedInputValue.value);
+				updateValue(newValue, e);
 				emit("pressEnter", computedInputValue.value, e);
 				if (!retainInputValue.value.create) updateInputValue("", e);
 			}
@@ -22710,8 +22742,14 @@ var _Select = /* @__PURE__ */ defineComponent({
 					if (enabledOptionKeys.value.includes(key)) if (props.limit > 0 && computedValueKeys.value.length >= props.limit) {
 						const info = optionInfoMap.get(key);
 						emit("exceedLimit", info == null ? void 0 : info.value, ev);
-					} else updateValue(computedValueKeys.value.concat(key));
-				} else updateValue(computedValueKeys.value.filter((_key) => _key !== key));
+					} else {
+						const valueKeys = computedValueKeys.value.concat(key);
+						updateValue(valueKeys);
+					}
+				} else {
+					const valueKeys = computedValueKeys.value.filter((_key) => _key !== key);
+					updateValue(valueKeys);
+				}
 				if (!retainInputValue.value) updateInputValue("");
 			} else {
 				if (key !== computedValueKeys.value[0]) updateValue([key]);
@@ -22734,15 +22772,17 @@ var _Select = /* @__PURE__ */ defineComponent({
 		};
 		const handleRemove = (key) => {
 			const optionInfo = optionInfoMap.get(key);
-			updateValue(computedValueKeys.value.filter((_key) => _key !== key));
+			const newKeys = computedValueKeys.value.filter((_key) => _key !== key);
+			updateValue(newKeys);
 			emit("remove", optionInfo == null ? void 0 : optionInfo.value);
 		};
 		const handleClear = (e) => {
 			e?.stopPropagation();
-			updateValue(computedValueKeys.value.filter((key) => {
+			const newKeys = computedValueKeys.value.filter((key) => {
 				var _a;
 				return (_a = optionInfoMap.get(key)) == null ? void 0 : _a.disabled;
-			}));
+			});
+			updateValue(newKeys);
 			updateInputValue("");
 			emit("clear", e);
 		};
@@ -27408,7 +27448,8 @@ var _sfc_main$101 = /* @__PURE__ */ defineComponent({
 		return {
 			isWeek: computed(() => (mode == null ? void 0 : mode.value) === "week"),
 			getCellClassName: (cellData) => {
-				return getCellClassName(cellData, isCellDisabled(cellData));
+				const disabled = isCellDisabled(cellData);
+				return getCellClassName(cellData, disabled);
 			},
 			onCellClick: (cellData) => {
 				if (isCellDisabled(cellData)) return;
@@ -31960,7 +32001,8 @@ var _sfc_main$83 = /* @__PURE__ */ defineComponent({
 			});
 		};
 		const scrollToFirstError = (field) => {
-			scrollToField(field, !isBoolean$1(props.scrollToFirstError) ? props.scrollToFirstError : void 0);
+			const options = !isBoolean$1(props.scrollToFirstError) ? props.scrollToFirstError : void 0;
+			scrollToField(field, options);
 		};
 		const validate = (callback) => {
 			const list = [];
@@ -33955,7 +33997,9 @@ function useImageDrag(props) {
 	};
 	const onMoving = (e) => {
 		e.preventDefault && e.preventDefault();
-		translate.value = [startTranslate[0] + (e.pageX - startPageX) / scale.value, startTranslate[1] + (e.pageY - startPageY) / scale.value];
+		const nextX = startTranslate[0] + (e.pageX - startPageX) / scale.value;
+		const nextY = startTranslate[1] + (e.pageY - startPageY) / scale.value;
+		translate.value = [nextX, nextY];
 	};
 	const onMoveEnd = (e) => {
 		e.preventDefault && e.preventDefault();
@@ -34295,7 +34339,8 @@ var _sfc_main$70 = /* @__PURE__ */ defineComponent({
 			changeScale(Math.max(newHeightScale, newWidthScale));
 		}
 		function handleRotate(direction) {
-			rotate.value = direction === "clockwise" ? (rotate.value + ROTATE_STEP) % 360 : rotate.value === 0 ? 360 - ROTATE_STEP : rotate.value - ROTATE_STEP;
+			const newRotate = direction === "clockwise" ? (rotate.value + ROTATE_STEP) % 360 : rotate.value === 0 ? 360 - ROTATE_STEP : rotate.value - ROTATE_STEP;
+			rotate.value = newRotate;
 		}
 		function handleScale(action) {
 			changeScale(getScale(scale.value, action));
@@ -37653,7 +37698,10 @@ var OverflowWrap = /* @__PURE__ */ defineComponent({
 					renderSubMenu(null, { isMirror: true }),
 					...children.map((child, index) => {
 						const item = cloneVNode(child, lastVisibleIndex.value !== null && index > lastVisibleIndex.value ? { class: overflowMenuItemClass } : { class: "" });
-						if (lastVisibleIndex.value !== null && index === lastVisibleIndex.value + 1) overflowSubMenu = renderSubMenu(children.slice(index).map((child2) => cloneVNode(child2)));
+						if (lastVisibleIndex.value !== null && index === lastVisibleIndex.value + 1) {
+							const overflowMenuItems = children.slice(index).map((child2) => cloneVNode(child2));
+							overflowSubMenu = renderSubMenu(overflowMenuItems);
+						}
 						return item;
 					}),
 					overflowSubMenu
@@ -45816,7 +45864,8 @@ var TabsNav = /* @__PURE__ */ defineComponent({
 		};
 		const handleButtonClick = (type) => {
 			const scrollDirection = type === "previous" !== isRtlHorizontal.value ? -1 : 1;
-			setOffset(offset.value + scrollDirection * wrapperLength.value);
+			const nextOffset = offset.value + scrollDirection * wrapperLength.value;
+			setOffset(nextOffset);
 		};
 		const handleResize = () => {
 			getSize();
@@ -46679,8 +46728,9 @@ var _sfc_main$17 = /* @__PURE__ */ defineComponent({
 		const cls = computed(() => {
 			const { items = [], reverse, labelPosition, mode = "left" } = context;
 			const direction = contextDirection.value;
+			const computedPosition = getDefaultPosition(index.value, mode, direction, props.position);
 			return [prefixCls, {
-				[`${prefixCls}-${direction}-${getDefaultPosition(index.value, mode, direction, props.position)}`]: direction,
+				[`${prefixCls}-${direction}-${computedPosition}`]: direction,
 				[`${prefixCls}-label-${labelPosition}`]: labelPosition,
 				[`${prefixCls}-last`]: index.value === (reverse === true ? 0 : items.length - 1)
 			}];
@@ -47181,7 +47231,8 @@ var _sfc_main$15 = /* @__PURE__ */ defineComponent({
 			(_b = (_a = eventHandlers.value) == null ? void 0 : _a.onChange) == null || _b.call(_a);
 		};
 		const handleClick = (target) => {
-			moveTo(target === "target" ? dataInfo.value.sourceInfo.validSelected : dataInfo.value.targetInfo.validSelected, target);
+			const values = target === "target" ? dataInfo.value.sourceInfo.validSelected : dataInfo.value.targetInfo.validSelected;
+			moveTo(values, target);
 		};
 		const handleSelect = (values) => {
 			_selected.value = values;
@@ -51258,7 +51309,10 @@ var _sfc_main$6 = /* @__PURE__ */ defineComponent({
 						});
 						setSelectedKeys(newVal);
 					}
-				} else setSelectedKeys(selectedKeys.value.filter((i) => i !== id));
+				} else {
+					const newVal = selectedKeys.value.filter((i) => i !== id);
+					setSelectedKeys(newVal);
+				}
 			}
 		};
 	}
@@ -54271,7 +54325,7 @@ var import_lodash = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
 					} else {
 						var stack = new Stack();
 						if (customizer) var result = customizer(objValue, srcValue, key, object, source, stack);
-						if (!(result === undefined ? baseIsEqual(srcValue, objValue, COMPARE_PARTIAL_FLAG | COMPARE_UNORDERED_FLAG, customizer, stack) : result)) return false;
+						if (!(result === undefined ? baseIsEqual(srcValue, objValue, 3, customizer, stack) : result)) return false;
 					}
 				}
 				return true;
@@ -54410,7 +54464,7 @@ var import_lodash = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
 				if (isKey(path) && isStrictComparable(srcValue)) return matchesStrictComparable(toKey(path), srcValue);
 				return function(object) {
 					var objValue = get(object, path);
-					return objValue === undefined && objValue === srcValue ? hasIn(object, path) : baseIsEqual(srcValue, objValue, COMPARE_PARTIAL_FLAG | COMPARE_UNORDERED_FLAG);
+					return objValue === undefined && objValue === srcValue ? hasIn(object, path) : baseIsEqual(srcValue, objValue, 3);
 				};
 			}
 			/**
@@ -54902,7 +54956,7 @@ var import_lodash = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
 				if (isArray(value)) return arrayMap(value, baseToString) + "";
 				if (isSymbol(value)) return symbolToString ? symbolToString.call(value) : "";
 				var result = value + "";
-				return result == "0" && 1 / value == -INFINITY ? "-0" : result;
+				return result == "0" && 1 / value == -Infinity ? "-0" : result;
 			}
 			/**
 			* The base implementation of `_.uniqBy` without support for iteratee shorthands.
@@ -56775,7 +56829,7 @@ var import_lodash = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
 			function toKey(value) {
 				if (typeof value == "string" || isSymbol(value)) return value;
 				var result = value + "";
-				return result == "0" && 1 / value == -INFINITY ? "-0" : result;
+				return result == "0" && 1 / value == -Infinity ? "-0" : result;
 			}
 			/**
 			* Converts `func` to its source code.
@@ -60668,7 +60722,7 @@ var import_lodash = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
 			* // => false
 			*/
 			function cloneDeep(value) {
-				return baseClone(value, CLONE_DEEP_FLAG | CLONE_SYMBOLS_FLAG);
+				return baseClone(value, 5);
 			}
 			/**
 			* This method is like `_.cloneWith` except that it recursively clones `value`.
@@ -60700,7 +60754,7 @@ var import_lodash = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
 			*/
 			function cloneDeepWith(value, customizer) {
 				customizer = typeof customizer == "function" ? customizer : undefined;
-				return baseClone(value, CLONE_DEEP_FLAG | CLONE_SYMBOLS_FLAG, customizer);
+				return baseClone(value, 5, customizer);
 			}
 			/**
 			* Checks if `object` conforms to `source` by invoking the predicate
@@ -61608,7 +61662,7 @@ var import_lodash = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
 			* // => false
 			*/
 			function isSafeInteger(value) {
-				return isInteger(value) && value >= -MAX_SAFE_INTEGER && value <= MAX_SAFE_INTEGER;
+				return isInteger(value) && value >= -9007199254740991 && value <= MAX_SAFE_INTEGER;
 			}
 			/**
 			* Checks if `value` is classified as a `Set` object.
@@ -61852,7 +61906,7 @@ var import_lodash = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
 			function toFinite(value) {
 				if (!value) return value === 0 ? value : 0;
 				value = toNumber(value);
-				if (value === INFINITY || value === -INFINITY) return (value < 0 ? -1 : 1) * MAX_INTEGER;
+				if (value === INFINITY || value === -Infinity) return (value < 0 ? -1 : 1) * MAX_INTEGER;
 				return value === value ? value : 0;
 			}
 			/**
@@ -62002,7 +62056,7 @@ var import_lodash = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
 			* // => 3
 			*/
 			function toSafeInteger(value) {
-				return value ? baseClamp(toInteger(value), -MAX_SAFE_INTEGER, MAX_SAFE_INTEGER) : value === 0 ? value : 0;
+				return value ? baseClamp(toInteger(value), -9007199254740991, MAX_SAFE_INTEGER) : value === 0 ? value : 0;
 			}
 			/**
 			* Converts `value` to a string. An empty string is returned for `null`
@@ -62911,7 +62965,7 @@ var import_lodash = (/* @__PURE__ */ __commonJSMin(((exports, module) => {
 					return path;
 				});
 				copyObject(object, getAllKeysIn(object), result);
-				if (isDeep) result = baseClone(result, CLONE_DEEP_FLAG | CLONE_FLAT_FLAG | CLONE_SYMBOLS_FLAG, customOmitClone);
+				if (isDeep) result = baseClone(result, 7, customOmitClone);
 				var length = paths.length;
 				while (length--) baseUnset(result, paths[length]);
 				return result;
@@ -84029,7 +84083,7 @@ function shouldRetrieveDataByName(source) {
 /**
 * AUTO-GENERATED FILE. DO NOT MODIFY.
 */
-var _a$1, _b, _c$1, _d;
+var _a$2, _b, _c$1, _d;
 var providerMethods;
 var mountMethods;
 /**
@@ -84153,9 +84207,9 @@ var DefaultDataProvider = function() {
 var validateSimply = function(rawData) {
 	if (!isArray$1(rawData)) error("series.data or dataset.source must be an array.");
 };
-_a$1 = {}, _a$1[SOURCE_FORMAT_ARRAY_ROWS + "_" + SERIES_LAYOUT_BY_COLUMN] = validateSimply, _a$1[SOURCE_FORMAT_ARRAY_ROWS + "_row"] = validateSimply, _a$1[SOURCE_FORMAT_OBJECT_ROWS] = validateSimply, _a$1[SOURCE_FORMAT_KEYED_COLUMNS] = function(rawData, dimsDef) {
+_a$2 = {}, _a$2[SOURCE_FORMAT_ARRAY_ROWS + "_" + SERIES_LAYOUT_BY_COLUMN] = validateSimply, _a$2[SOURCE_FORMAT_ARRAY_ROWS + "_row"] = validateSimply, _a$2[SOURCE_FORMAT_OBJECT_ROWS] = validateSimply, _a$2[SOURCE_FORMAT_KEYED_COLUMNS] = function(rawData, dimsDef) {
 	for (var i = 0; i < dimsDef.length; i++) if (dimsDef[i].name == null) error("dimension name must not be null/undefined.");
-}, _a$1[SOURCE_FORMAT_ORIGINAL] = validateSimply;
+}, _a$2[SOURCE_FORMAT_ORIGINAL] = validateSimply;
 var getItemSimply = function(rawData, startIndex, dimsDef, idx) {
 	return rawData[idx];
 };
@@ -143615,6 +143669,16 @@ use(installAxisBreak);
 use(installLegacyGridContainLabel);
 use(installScatterJitter);
 //#endregion
+//#region node_modules/@wailsio/runtime/dist/environment.js
+/**
+* True when running inside a browser/webview with a DOM available.
+* False under server-side rendering (e.g. `next build` prerendering),
+* where application code may import the runtime module even though no
+* Wails APIs can actually be used (#4679). Modules must not touch
+* `window`/`document` at import time except behind this guard.
+*/
+var hasDOM = typeof window !== "undefined" && typeof document !== "undefined";
+//#endregion
 //#region node_modules/@wailsio/runtime/dist/nanoid.js
 var urlAlphabet = "useandom-26T198340PX75pxJACKVERYMINDBUSHWOLF_GQZbfghjklqvwyzrict";
 function nanoid(size = 21) {
@@ -143625,7 +143689,11 @@ function nanoid(size = 21) {
 }
 //#endregion
 //#region node_modules/@wailsio/runtime/dist/runtime.js
-var runtimeURL = window.location.origin + "/wails/runtime";
+var _a$1;
+function runtimeURL() {
+	return window.location.origin + "/wails/runtime";
+}
+var CHUNK_THRESHOLD = 512 * 1024;
 var objectNames = Object.freeze({
 	Call: 0,
 	Clipboard: 1,
@@ -143638,7 +143706,8 @@ var objectNames = Object.freeze({
 	System: 8,
 	Browser: 9,
 	CancelCall: 10,
-	IOS: 11
+	IOS: 11,
+	Android: 12
 });
 var clientId = nanoid();
 /**
@@ -143660,7 +143729,7 @@ function newRuntimeCaller(object, windowName = "") {
 async function runtimeCallWithID(objectID, method, windowName, args) {
 	var _a, _b;
 	if (customTransport) return customTransport.call(objectID, method, windowName, args);
-	let url = new URL(runtimeURL);
+	let url = new URL(runtimeURL());
 	let body = {
 		object: objectID,
 		method
@@ -143671,14 +143740,89 @@ async function runtimeCallWithID(objectID, method, windowName, args) {
 		["Content-Type"]: "application/json"
 	};
 	if (windowName) headers["x-wails-window-name"] = windowName;
-	let response = await fetch(url, {
+	const bodyStr = JSON.stringify(body);
+	let response;
+	if (bodyStr.length > CHUNK_THRESHOLD) response = await sendChunked(url, headers, bodyStr);
+	else response = await fetch(url, {
 		method: "POST",
 		headers,
-		body: JSON.stringify(body)
+		body: bodyStr
 	});
 	if (!response.ok) throw new Error(await response.text());
 	if (((_b = (_a = response.headers.get("Content-Type")) === null || _a === void 0 ? void 0 : _a.indexOf("application/json")) !== null && _b !== void 0 ? _b : -1) !== -1) return response.json();
 	else return response.text();
+}
+async function sendChunked(url, headers, bodyStr) {
+	const chunkId = nanoid();
+	const bodyBytes = new TextEncoder().encode(bodyStr);
+	const totalChunks = Math.ceil(bodyBytes.length / CHUNK_THRESHOLD);
+	for (let i = 0; i < totalChunks - 1; i++) {
+		const chunk = bodyBytes.subarray(i * CHUNK_THRESHOLD, (i + 1) * CHUNK_THRESHOLD);
+		const resp = await fetch(url, {
+			method: "POST",
+			headers: Object.assign(Object.assign({}, headers), {
+				"x-wails-chunk-id": chunkId,
+				"x-wails-chunk-index": String(i),
+				"x-wails-chunk-total": String(totalChunks)
+			}),
+			body: chunk
+		});
+		if (!resp.ok) throw new Error(await resp.text());
+	}
+	return fetch(url, {
+		method: "POST",
+		headers: Object.assign(Object.assign({}, headers), {
+			"x-wails-chunk-id": chunkId,
+			"x-wails-chunk-index": String(totalChunks - 1),
+			"x-wails-chunk-total": String(totalChunks)
+		}),
+		body: bodyBytes.subarray((totalChunks - 1) * CHUNK_THRESHOLD)
+	});
+}
+var androidBridge = hasDOM && typeof ((_a$1 = window.wails) === null || _a$1 === void 0 ? void 0 : _a$1.invokeAsync) === "function" ? window.wails : null;
+if (androidBridge) {
+	const pending = /* @__PURE__ */ new Map();
+	window._wailsAndroidCallback = (id, response, error) => {
+		var _a;
+		const promise = pending.get(id);
+		if (!promise) return;
+		pending.delete(id);
+		if (error) {
+			promise.reject(new Error(error));
+			return;
+		}
+		try {
+			const envelope = JSON.parse(response !== null && response !== void 0 ? response : "{}");
+			if (!envelope.ok) {
+				promise.reject(new Error((_a = envelope.error) !== null && _a !== void 0 ? _a : "unknown runtime call error"));
+				return;
+			}
+			promise.resolve("text" in envelope ? envelope.text : envelope.data);
+		} catch (e) {
+			promise.reject(e);
+		}
+	};
+	customTransport = { call(objectID, method, windowName, args) {
+		return new Promise((resolve, reject) => {
+			const id = nanoid();
+			pending.set(id, {
+				resolve,
+				reject
+			});
+			try {
+				androidBridge.invokeAsync(id, JSON.stringify({
+					object: objectID,
+					method,
+					windowName,
+					args: args !== null && args !== void 0 ? args : null,
+					clientId
+				}));
+			} catch (e) {
+				pending.delete(id);
+				reject(e);
+			}
+		});
+	} };
 }
 objectNames.System;
 var _invoke = (function() {
@@ -143702,6 +143846,15 @@ function invoke(msg) {
 function IsWindows() {
 	var _a, _b;
 	return ((_b = (_a = window._wails) === null || _a === void 0 ? void 0 : _a.environment) === null || _b === void 0 ? void 0 : _b.OS) === "windows";
+}
+/**
+* Checks if the current operating system is Linux.
+*
+* @returns Returns true if the current operating system is Linux, false otherwise.
+*/
+function IsLinux() {
+	var _a, _b;
+	return ((_b = (_a = window._wails) === null || _a === void 0 ? void 0 : _a.environment) === null || _b === void 0 ? void 0 : _b.OS) === "linux";
 }
 /**
 * Reports whether the app is being run in debug mode.
@@ -143730,10 +143883,10 @@ function eventTarget(event) {
 	else if (!(event.target instanceof HTMLElement) && event.target instanceof Node) return (_a = event.target.parentElement) !== null && _a !== void 0 ? _a : document.body;
 	else return document.body;
 }
-document.addEventListener("DOMContentLoaded", () => {});
+if (hasDOM) document.addEventListener("DOMContentLoaded", () => {});
 //#endregion
 //#region node_modules/@wailsio/runtime/dist/contextmenu.js
-window.addEventListener("contextmenu", contextMenuHandler);
+if (hasDOM) window.addEventListener("contextmenu", contextMenuHandler);
 var call$3 = newRuntimeCaller(objectNames.ContextMenu);
 var ContextMenuOpen = 0;
 function openContextMenu(id, x, y, data) {
@@ -143801,15 +143954,18 @@ var resizing = false;
 var resizeEdge = "";
 var defaultCursor = "auto";
 var buttons = 0;
-var buttonsTracked = canTrackButtons();
-window._wails = window._wails || {};
-window._wails.setResizable = (value) => {
-	resizable = value;
-	if (!resizable) {
-		canResize = resizing = false;
-		setResize();
-	}
-};
+var buttonsTracked = false;
+if (hasDOM) {
+	buttonsTracked = canTrackButtons();
+	window._wails = window._wails || {};
+	window._wails.setResizable = (value) => {
+		resizable = value;
+		if (!resizable) {
+			canResize = resizing = false;
+			setResize();
+		}
+	};
+}
 var dragInitDone = false;
 function isMobile() {
 	var _a, _b;
@@ -143831,17 +143987,19 @@ function tryInitDragHandlers() {
 	]) window.addEventListener(ev, suppressEvent, { capture: true });
 	dragInitDone = true;
 }
-tryInitDragHandlers();
-document.addEventListener("DOMContentLoaded", tryInitDragHandlers, { once: true });
-var dragEnvPolls = 0;
-var dragEnvPoll = window.setInterval(() => {
-	if (dragInitDone) {
-		window.clearInterval(dragEnvPoll);
-		return;
-	}
+if (hasDOM) {
 	tryInitDragHandlers();
-	if (++dragEnvPolls > 100) window.clearInterval(dragEnvPoll);
-}, 50);
+	document.addEventListener("DOMContentLoaded", tryInitDragHandlers, { once: true });
+	let dragEnvPolls = 0;
+	const dragEnvPoll = window.setInterval(() => {
+		if (dragInitDone) {
+			window.clearInterval(dragEnvPoll);
+			return;
+		}
+		tryInitDragHandlers();
+		if (++dragEnvPolls > 100) window.clearInterval(dragEnvPoll);
+	}, 50);
+}
 function suppressEvent(event) {
 	if (dragging || resizing) {
 		event.stopImmediatePropagation();
@@ -143933,21 +144091,25 @@ function onMouseMove(event) {
 		canDrag = canResize = false;
 		return;
 	}
-	if (!resizable || !IsWindows()) {
+	if (!resizable || !IsWindows() && !(IsLinux() && GetFlag("frameless"))) {
 		if (resizeEdge) setResize();
 		return;
 	}
 	const resizeHandleHeight = GetFlag("system.resizeHandleHeight") || 5;
 	const resizeHandleWidth = GetFlag("system.resizeHandleWidth") || 5;
 	const cornerExtra = GetFlag("resizeCornerExtra") || 10;
-	const rightBorder = window.outerWidth - event.clientX < resizeHandleWidth;
+	const scrollbarWidth = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+	const scrollbarHeight = Math.max(0, window.innerHeight - document.documentElement.clientHeight);
+	const rightContentEdge = window.innerWidth - scrollbarWidth;
+	const bottomContentEdge = window.innerHeight - scrollbarHeight;
+	const rightBorder = event.clientX < rightContentEdge && rightContentEdge - event.clientX < resizeHandleWidth;
 	const leftBorder = event.clientX < resizeHandleWidth;
 	const topBorder = event.clientY < resizeHandleHeight;
-	const bottomBorder = window.outerHeight - event.clientY < resizeHandleHeight;
-	const rightCorner = window.outerWidth - event.clientX < resizeHandleWidth + cornerExtra;
+	const bottomBorder = event.clientY < bottomContentEdge && bottomContentEdge - event.clientY < resizeHandleHeight;
+	const rightCorner = event.clientX < rightContentEdge && rightContentEdge - event.clientX < resizeHandleWidth + cornerExtra;
 	const leftCorner = event.clientX < resizeHandleWidth + cornerExtra;
 	const topCorner = event.clientY < resizeHandleHeight + cornerExtra;
-	const bottomCorner = window.outerHeight - event.clientY < resizeHandleHeight + cornerExtra;
+	const bottomCorner = event.clientY < bottomContentEdge && bottomContentEdge - event.clientY < resizeHandleHeight + cornerExtra;
 	if (!leftCorner && !topCorner && !bottomCorner && !rightCorner) setResize();
 	else if (rightCorner && bottomCorner) setResize("se-resize");
 	else if (leftCorner && bottomCorner) setResize("sw-resize");
@@ -144740,7 +144902,7 @@ else promiseWithResolvers = function() {
 };
 //#endregion
 //#region node_modules/@wailsio/runtime/dist/calls.js
-window._wails = window._wails || {};
+if (hasDOM) window._wails = window._wails || {};
 var call$2 = newRuntimeCaller(objectNames.Call);
 var cancelCall = newRuntimeCaller(objectNames.CancelCall);
 var callResponses = /* @__PURE__ */ new Map();
@@ -144842,7 +145004,7 @@ function Array$1(element) {
 var Events = {};
 //#endregion
 //#region node_modules/@wailsio/runtime/dist/dialogs.js
-window._wails = window._wails || {};
+if (hasDOM) window._wails = window._wails || {};
 var call$1 = newRuntimeCaller(objectNames.Dialog);
 var DialogError = 2;
 /**
@@ -144893,8 +145055,10 @@ function listenerOff(listener) {
 }
 //#endregion
 //#region node_modules/@wailsio/runtime/dist/events.js
-window._wails = window._wails || {};
-window._wails.dispatchWailsEvent = dispatchWailsEvent;
+if (hasDOM) {
+	window._wails = window._wails || {};
+	window._wails.dispatchWailsEvent = dispatchWailsEvent;
+}
 objectNames.Events;
 /**
 * Represents a system event or a custom event emitted through wails-provided facilities.
@@ -144910,9 +145074,16 @@ function dispatchWailsEvent(event) {
 	if (!listeners) return;
 	let wailsEvent = new WailsEvent(event.name, event.name in Events ? Events[event.name](event.data) : event.data);
 	if ("sender" in event) wailsEvent.sender = event.sender;
-	listeners = listeners.filter((listener) => !listener.dispatch(wailsEvent));
-	if (listeners.length === 0) eventListeners.delete(event.name);
-	else eventListeners.set(event.name, listeners);
+	const expired = /* @__PURE__ */ new Set();
+	for (const listener of listeners.slice()) if (listener.dispatch(wailsEvent)) expired.add(listener);
+	if (expired.size > 0) {
+		const live = eventListeners.get(event.name);
+		if (live) {
+			const remaining = live.filter((l) => !expired.has(l));
+			if (remaining.length === 0) eventListeners.delete(event.name);
+			else eventListeners.set(event.name, remaining);
+		}
+	}
 }
 /**
 * Register a callback function to be called multiple times for a specific event.
@@ -144996,6 +145167,7 @@ var ZoomResetMethod = 48;
 var SnapAssistMethod = 49;
 var FilesDropped = 50;
 var PrintMethod = 51;
+var SetScreenMethod = 52;
 /**
 * Finds the nearest drop target element by walking up the DOM tree.
 */
@@ -145488,6 +145660,14 @@ var thisWindow = new class Window {
 		this[callerSym](FilesDropped, payload);
 		cleanupNativeDrag();
 	}
+	/**
+	* Moves the window to the center of the specified screen's work area.
+	*
+	* @param screenID - The ID of the target screen.
+	*/
+	SetScreen(screenID) {
+		return this[callerSym](SetScreenMethod, { screenID });
+	}
 	SnapAssist() {
 		return this[callerSym](SnapAssistMethod);
 	}
@@ -145584,14 +145764,18 @@ function setupDropTargetListeners() {
 if (typeof window !== "undefined" && typeof document !== "undefined") setupDropTargetListeners();
 //#endregion
 //#region node_modules/@wailsio/runtime/dist/index.js
-window._wails = window._wails || {};
-window._wails.invoke = invoke;
-window._wails.clientId = clientId;
-window._wails.handlePlatformFileDrop = thisWindow.HandlePlatformFileDrop.bind(thisWindow);
-window._wails.handleDragEnter = handleDragEnter;
-window._wails.handleDragLeave = handleDragLeave;
-window._wails.handleDragOver = handleDragOver;
-invoke("wails:runtime:ready");
+if (hasDOM) window._wails = window._wails || {};
+if (hasDOM) {
+	window._wails.invoke = invoke;
+	window._wails.clientId = clientId;
+}
+if (hasDOM) window._wails.handlePlatformFileDrop = thisWindow.HandlePlatformFileDrop.bind(thisWindow);
+if (hasDOM) {
+	window._wails.handleDragEnter = handleDragEnter;
+	window._wails.handleDragLeave = handleDragLeave;
+	window._wails.handleDragOver = handleDragOver;
+}
+if (hasDOM) invoke("wails:runtime:ready");
 /**
 * Loads a script from the given URL if it exists.
 * Uses HEAD request to check existence, then injects a script tag.
@@ -145600,13 +145784,15 @@ invoke("wails:runtime:ready");
 function loadOptionalScript(url) {
 	return fetch(url, { method: "HEAD" }).then((response) => {
 		if (response.ok) {
-			const script = document.createElement("script");
-			script.src = url;
-			document.head.appendChild(script);
+			if ((response.headers.get("content-type") || "").toLowerCase().includes("javascript")) {
+				const script = document.createElement("script");
+				script.src = url;
+				document.head.appendChild(script);
+			}
 		}
 	}).catch(() => {});
 }
-loadOptionalScript("/wails/custom.js");
+if (hasDOM) loadOptionalScript("/wails/custom.js");
 //#endregion
 //#region bindings/GWDM/backend/link/linkservice.js
 /**
@@ -146151,7 +146337,8 @@ var Parameter = class Parameter {
 	* @returns {Parameter}
 	*/
 	static createFrom($$source = {}) {
-		return new Parameter(typeof $$source === "string" ? JSON.parse($$source) : $$source);
+		let $$parsedSource = typeof $$source === "string" ? JSON.parse($$source) : $$source;
+		return new Parameter($$parsedSource);
 	}
 };
 var Script = class Script {
@@ -146743,7 +146930,8 @@ var FEC = class FEC {
 	* @returns {FEC}
 	*/
 	static createFrom($$source = {}) {
-		return new FEC(typeof $$source === "string" ? JSON.parse($$source) : $$source);
+		let $$parsedSource = typeof $$source === "string" ? JSON.parse($$source) : $$source;
+		return new FEC($$parsedSource);
 	}
 };
 //#endregion
@@ -147120,7 +147308,7 @@ var er = class {
 	}
 }, tr = class {
 	constructor() {
-		this.interim = new Uint8Array(3);
+		this.interim = /* @__PURE__ */ new Uint8Array(3);
 	}
 	clear() {
 		this.interim.fill(0);
@@ -148513,7 +148701,7 @@ var v = class {
 			if (this._disposed) return D.None;
 			e && (t = t.bind(e));
 			let r = new Pt(t), n;
-			this._leakageMon && this._size >= Math.ceil(this._leakageMon.threshold * .2) && (r.stack = gi.create(), n = this._leakageMon.check(r.stack, this._size + 1)), fo && (r.stack = gi.create()), this._listeners ? this._listeners instanceof Pt ? (this._deliveryQueue ??= new jn(), this._listeners = [this._listeners, r]) : this._listeners.push(r) : (this._options?.onWillAddFirstListener?.(this), this._listeners = r, this._options?.onDidAddFirstListener?.(this)), this._size++;
+			this._leakageMon && this._size >= Math.ceil(this._leakageMon.threshold * .2) && (r.stack = gi.create(), n = this._leakageMon.check(r.stack, this._size + 1)), this._listeners ? this._listeners instanceof Pt ? (this._deliveryQueue ??= new jn(), this._listeners = [this._listeners, r]) : this._listeners.push(r) : (this._options?.onWillAddFirstListener?.(this), this._listeners = r, this._options?.onDidAddFirstListener?.(this)), this._size++;
 			let l = C(() => {
 				_r?.unregister(l), n?.(), this._removeListener(r);
 			});
@@ -149210,7 +149398,7 @@ var Cr = class Cr {
 		this._h2 = 2562383102;
 		this._h3 = 271733878;
 		this._h4 = 3285377520;
-		this._buff = new Uint8Array(67), this._buffDV = new DataView(this._buff.buffer), this._buffLen = 0, this._totalLen = 0, this._leftoverHighSurrogate = 0, this._finished = !1;
+		this._buff = /* @__PURE__ */ new Uint8Array(67), this._buffDV = new DataView(this._buff.buffer), this._buffLen = 0, this._totalLen = 0, this._leftoverHighSurrogate = 0, this._finished = !1;
 	}
 	update(t) {
 		let e = t.length;
@@ -150023,7 +150211,8 @@ var Nr = class s {
 	}
 	static start(t, e, i) {
 		i = i + 10;
-		return new s(t, e, Date.now() - 10, i);
+		let r = Date.now() - 10;
+		return new s(t, e, r, i);
 	}
 };
 function Aa(s) {
@@ -151372,7 +151561,7 @@ function qo(s, t, e) {
 }
 var Yr = class {
 	constructor(t, e) {
-		this._flat = new Float32Array(256);
+		this._flat = /* @__PURE__ */ new Float32Array(256);
 		this._font = "";
 		this._fontSize = 0;
 		this._weight = "normal";
@@ -153966,7 +154155,7 @@ var fn = class {
 	constructor() {
 		this.version = "6";
 		if (!se) {
-			se = new Uint8Array(65536), se.fill(1), se[0] = 0, se.fill(0, 1, 32), se.fill(0, 127, 160), se.fill(2, 4352, 4448), se[9001] = 2, se[9002] = 2, se.fill(2, 11904, 42192), se[12351] = 1, se.fill(2, 44032, 55204), se.fill(2, 63744, 64256), se.fill(2, 65040, 65050), se.fill(2, 65072, 65136), se.fill(2, 65280, 65377), se.fill(2, 65504, 65511);
+			se = /* @__PURE__ */ new Uint8Array(65536), se.fill(1), se[0] = 0, se.fill(0, 1, 32), se.fill(0, 127, 160), se.fill(2, 4352, 4448), se[9001] = 2, se[9002] = 2, se.fill(2, 11904, 42192), se[12351] = 1, se.fill(2, 44032, 55204), se.fill(2, 63744, 64256), se.fill(2, 65040, 65050), se.fill(2, 65072, 65136), se.fill(2, 65280, 65377), se.fill(2, 65504, 65511);
 			for (let t = 0; t < Os.length; ++t) se.fill(0, Os[t][0], Os[t][1] + 1);
 		}
 	}
@@ -154705,7 +154894,7 @@ var vl = 5e3, gl = 0, vn = class extends D {
 		this._coreMouseService = a;
 		this._unicodeService = u;
 		this._parser = h;
-		this._parseBuffer = new Uint32Array(4096);
+		this._parseBuffer = /* @__PURE__ */ new Uint32Array(4096);
 		this._stringDecoder = new er();
 		this._utf8Decoder = new tr();
 		this._windowTitle = "";
